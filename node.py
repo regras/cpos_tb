@@ -261,11 +261,11 @@ class Node(object):
                             n = self.recursiveValidate(b_error)
                             if n:
                                 #self.bchain.chain.clear() # TODO change this and refactor
-				#remove all blocks after fork point
-				for i in xrange(n.index,last.index + 1):
-				    self.bchain.popleft()
+                                #remove all blocks after fork point
+                                for i in xrange(n.index,last.index + 1):
+                                    self.bchain.chain.popleft()
 
-				#insert new blocks starting on n block
+                                #insert new blocks starting on n block
                                 for i in xrange(n.index,last.index+1):
                                     logging.debug('updating chain')
                                     if i == 1:
