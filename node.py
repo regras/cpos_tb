@@ -259,8 +259,13 @@ class Node(object):
                             sqldb.writeBlock(b_error)
                             # trying to solve and pick a fork
                             n = self.recursiveValidate(b_error)
-                            if n:                                
-                                self.bchain.chain.clear() # TODO change this and refactor
+                            if n:
+                                #self.bchain.chain.clear() # TODO change this and refactor
+				#remove all blocks after fork point
+				for i in xrange(n.index,last.index + 1):
+				    self.bchain.popleft()
+
+				#insert new blocks starting on n block
                                 for i in xrange(n.index,last.index+1):
                                     logging.debug('updating chain')
                                     if i == 1:
@@ -270,12 +275,13 @@ class Node(object):
                                         n = sqldb.forkUpdate(i)
                                         sqldb.replaceChain(n)
                                         self.bchain.addBlocktoBlockchain(sqldb.dbtoBlock(n))
-                                validations.validateChain(self.bchain, chain, self.stake)
+                                #validations.validateChain(self.bchain, chain, self.stake)
                         else:
                             logging.debug('invalid') # request again
                             new = self.reqBlock(b_error.index)
                             self.sync(new)
         logging.debug('synced')
+
 
     def recursiveValidate(self, blockerror):
         index = blockerror.index - 1
@@ -283,7 +289,7 @@ class Node(object):
         trials = 3
         while index and trials:
             logging.debug('validating index %s' % index)
-            new = self.reqBlock(index)
+            new = self.reqBlock(index + 1)
             if new and validations.validateBlockHeader(new):
                 sqldb.writeBlock(new)
                 if validations.validateBlock(new, pblock) and validations.validateChallenge(new, self.stake):
