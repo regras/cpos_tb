@@ -126,7 +126,7 @@ class Node(object):
                 msg, ip, block_recv = self.subsocket.recv_multipart()
                 self.f.clear()
                 newChain = False
-                
+                print("ENTER LISTEN") 
                 # serialize
                 b = pickle.loads(block_recv)
                 logging.info("Got block %s miner %s" % (b.hash, ip))
@@ -250,8 +250,12 @@ class Node(object):
                     if b_error:
                         # TODO review from next line, because it is strange
                         # if h_error is false and block index equal last block index plus one
-                        if not h_error and b_error.index == last.index:
+                        print("h_error",h_error)
+                        print("b.error index",b_error.index)
+                        print("last index", last.index)
+                        if not h_error and b_error.index == last.index+1:
                             logging.debug('fork')
+                            print("FORK")
                             sqldb.writeBlock(b_error)
                             # trying to solve and pick a fork
                             n = self.recursiveValidate(b_error)

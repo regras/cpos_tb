@@ -26,7 +26,7 @@ def testHostWithPrivateDirs(number=2):
                     privateDirs=privateDirs )
     net = Mininet( topo=topo, host=host )
     net.start()
-    startServer(net)
+    #startServer(net)
     CLI( net )
     stopServer(net.hosts)
     net.stop()

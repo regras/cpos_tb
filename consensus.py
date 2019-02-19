@@ -51,11 +51,11 @@ class Consensus:
 
         hash_result = hashlib.sha256(c_header).hexdigest()
         print(hash_result)
-        print(format(int(hash_result, 16),"0256b"))
-        print(format(self.target,"0256b"))
+        # print(format(int(hash_result, 16),"0256b"))
+        # print(format(self.target,"0256b"))
 
         if int(hash_result,16) < self.target:
-            print("OK")
+            # print("OK")
             return hash_result, tx
         
         return False, tx
@@ -64,10 +64,14 @@ class Consensus:
         """ Loop for PoS in case of solve challenge, returning new Block object """
         r = int(math.floor((int(time.mktime(datetime.datetime.now().timetuple())) - int(lastBlock.arrive_time)) / int(TIMEOUT))) + 1
         
-        while True and not skip.is_set():
+        #while True and not skip.is_set():
+        while True :
             round = lastBlock.round + r
             new_hash, tx = self.POS(lastBlock, round, node, stake, skip)
             
+            if not tx:
+                return None
+
             print('new block' if new_hash else 'try again!')
             
             if new_hash:
@@ -76,7 +80,7 @@ class Consensus:
             
             time.sleep(TIMEOUT)
             r = r + 1
-            print(r)
+            # print(r)
 
         return None      
         

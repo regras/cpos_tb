@@ -55,7 +55,8 @@ def validateChain(bc, chain, stake):
         if not validateBlockHeader(b): # invalid
             print("HEADER NOT OK")
             return b, True
-
+        print("lastblock index",lastBlock.index)
+        print("current block index", b.index) 
         if validateBlock(b, lastBlock):
             print("BLOCK OK")
             if validateChallenge(b, stake) and validateRound(b,bc):
