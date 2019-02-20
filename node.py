@@ -125,8 +125,7 @@ class Node(object):
             try:
                 msg, ip, block_recv = self.subsocket.recv_multipart()
                 self.f.clear()
-                newChain = False
-                print("ENTER LISTEN") 
+                newChain = False 
                 # serialize
                 b = pickle.loads(block_recv)
                 logging.info("Got block %s miner %s" % (b.hash, ip))
@@ -141,7 +140,6 @@ class Node(object):
                          validations.validateRound(b, self.bchain) and 
                          validations.validateChallenge(b, self.stake) and 
                          validations.validateExpectedRound(b,lb)):
-                        print("SYNCED")
                         self.e.set()
                         self.bchain.addBlocktoBlockchain(b)
                         sqldb.writeBlock(b)
@@ -150,7 +148,6 @@ class Node(object):
                         #logging.debug('rebroadcast')
                         self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b, 2)])
                     elif b.index - lb.index > 1:
-                        print("NOT SYNC")
                         self.synced = False
                         self.sync(b, ip)
                     elif b.index == lb.index:
@@ -230,6 +227,7 @@ class Node(object):
         last = self.bchain.getLastBlock()
         # Sync based on rBlock
         if (rBlock.index > last.index):
+	    #print("RBLOCK", rBlock.index)
             self.e.set()
             if ((rBlock.index-last.index == 1) and 
                 validations.validateBlock(rBlock, last) and 
@@ -248,17 +246,15 @@ class Node(object):
                     last = self.bchain.getLastBlock()
                     # if b_error is diffent to None
                     if b_error:
+			#print("PONTO DE ERRO:", b_error.index)
                         # TODO review from next line, because it is strange
                         # if h_error is false and block index equal last block index plus one
-                        print("h_error",h_error)
-                        print("b.error index",b_error.index)
-                        print("last index", last.index)
                         if not h_error and b_error.index == last.index+1:
                             logging.debug('fork')
-                            print("FORK")
                             sqldb.writeBlock(b_error)
                             # trying to solve and pick a fork
-                            n = self.recursiveValidate(b_error)
+                            n = self.recursiveValidate(b_error, address)
+			    #print("PONTO DO FORK:", n.index)
                             if n:
                                 #self.bchain.chain.clear() # TODO change this and refactor
                                 #remove all blocks after fork point
@@ -283,13 +279,17 @@ class Node(object):
         logging.debug('synced')
 
 
-    def recursiveValidate(self, blockerror):
+    def recursiveValidate(self, blockerror, address=None):
         index = blockerror.index - 1
         pblock = sqldb.dbtoBlock(sqldb.blockQuery(['',index])) # previous block
+	print("PBLOCK", pblock.index)
         trials = 3
         while index and trials:
             logging.debug('validating index %s' % index)
-            new = self.reqBlock(index + 1)
+            chainnew = self.reqBlocks(index + 1, index + 1, address)
+	    new = chainnew[0]
+	    new = sqldb.dbtoBlock(new)
+	    print("NEW", new.index)
             if new and validations.validateBlockHeader(new):
                 sqldb.writeBlock(new)
                 if validations.validateBlock(new, pblock) and validations.validateChallenge(new, self.stake):
@@ -298,6 +298,7 @@ class Node(object):
                 else:
                     index -= 1
                     pblock = sqldb.dbtoBlock(sqldb.blockQuery(['',index]))
+		    print("PBLOCK", pblock.index)
             else:
                 trials -= 1
         return new
@@ -377,7 +378,6 @@ class Node(object):
                 sqldb.writeBlock(b)
                 #sqldb.writeChain(b)
                 self.bchain.addBlocktoBlockchain(b)
-                print("HASH CALCULADO:", b.calcBlockhash())
                 self.rpcsocket.send_string('Block created ' + str(b.blockInfo()))
                 
                 self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, pickle.dumps(b, 2)])
@@ -413,6 +413,7 @@ class Node(object):
         self.reqsocket.send_multipart([consensus.MSG_BLOCK, str(index)])
         logging.debug('Requesting block index %s' % index)
         m = self._poll()[0]
+	print("BLOCO REQBLOCK",m )
         return sqldb.dbtoBlock(m)
 
     def reqBlocks(self, first, last, address=None):
