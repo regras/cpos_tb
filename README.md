@@ -28,7 +28,9 @@ This file is a simple single switch Mininet topology that runs `node.py` in each
 ## Parameters
 
 ### simpleNet.py
-`
+
+Simple single switch Mininet topology with private directories in each host.
+
 **Arguments:**
 
 - `-n`\
