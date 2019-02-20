@@ -20,7 +20,7 @@ Execute file install.sh as root
 
 
 ### Use with mininet
-Run `sudo python simpleNet.py [-n <quantity>]`
+Run `sudo python simpleNet.py [-n <quantity>]`\
 This file is a simple single switch Mininet topology that runs `node.py` in each host with private directories.
 
 ---
