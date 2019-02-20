@@ -73,7 +73,7 @@ remove X peer and disconnect
 block X information
 - `getblocks X Y`\
 blocks X and Y information
-- `getpeerinfo`
+- `getpeerinfo`\
 IP of all connected peers
 - `startmining`\
 start mining on the node
