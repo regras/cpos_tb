@@ -46,6 +46,20 @@ def dbCheck():
         genesis = bc.getLastBlock()
         print(genesis.blockInfo())
         writeChain(genesis)
+    else:
+        bc.chain.popleft()
+        chain = getChain()
+	for b in chain:
+            bc addBlocktoBlockchain(dbtoBlock(b))
+    db.commit()
+    db.close()
+    return bc
+
+def getChain():
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    cursor.execute('SELECT * FROM chain')
+    bc = cursor.fetchall()
     db.commit()
     db.close()
     return bc
