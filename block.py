@@ -28,6 +28,6 @@ class Block:
 
     def rawblockInfo(self):
         return {'index': self.index , 'round': self.round , 'prev_hash': self.prev_hash , 'hash': self.hash, 'node': self.node, 'merkle_root': self.mroot, 'tx': self.tx, 'arrive_time': self.arrive_time}
-    
+
     def blockInfo(self):
-        return json.dumps(self.rawblockInfo(), indent=4)   
+        return json.dumps(self.rawblockInfo(), indent=4)

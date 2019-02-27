@@ -27,7 +27,7 @@ import validations
 class StopException(Exception):
     pass
 
-class Node(object): 
+class Node(object):
     """ Main class """
 
     ctx = None
@@ -125,7 +125,7 @@ class Node(object):
             try:
                 msg, ip, block_recv = self.subsocket.recv_multipart()
                 self.f.clear()
-                newChain = False 
+                newChain = False
                 # serialize
                 b = pickle.loads(block_recv)
                 logging.info("Got block %s miner %s" % (b.hash, ip))
@@ -174,17 +174,17 @@ class Node(object):
     def mine(self, cons):
         """ Create and send block in PUB socket based on consensus """
         name = threading.current_thread().getName()
-        
+
         while True and not self.k.is_set():
-            
+
             # move e flag inside generate?
             self.start.wait()
             self.f.wait()
-            
+
             lastblock = self.bchain.getLastBlock()
             node = hashlib.sha256(self.ipaddr).hexdigest()
             self.stake = self.balance
-           
+
             # find new block
             b = cons.generateNewblock(lastblock, node, self.stake, self.e)
 
@@ -364,10 +364,10 @@ class Node(object):
                 raise StopException
             elif cmd == rpc.MSG_BALANCE:
                 self.addBalance(int(messages[1]))
-                self.rpcsocket.send_string('Node Balance is ' + str(self.balance))    
+                self.rpcsocket.send_string('Node Balance is ' + str(self.balance))
             elif cmd == rpc.MSG_ADDBLOCK:
                 l = []
-                for i in messages[1:]: 
+                for i in messages[1:]:
                     l.append(i)
                 last_hash = sqldb.dbtoBlock(sqldb.blockQuery(['',str(int(l[0])-1)])).hash
                 hash_node = hashlib.sha256(self.ipaddr).hexdigest()
@@ -379,7 +379,7 @@ class Node(object):
                 #sqldb.writeChain(b)
                 self.bchain.addBlocktoBlockchain(b)
                 self.rpcsocket.send_string('Block created ' + str(b.blockInfo()))
-                
+
                 self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, pickle.dumps(b, 2)])
             else:
                 self.rpcsocket.send_string('Command unknown')
@@ -486,7 +486,7 @@ def main():
     threads = []
     #sqldb.databaseLocation = 'blocks/blockchain.db'
     cons = consensus.Consensus()
-    
+
     n = Node(args.ipaddr, args.port)
 
     # Connect to predefined peers
