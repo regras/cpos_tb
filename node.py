@@ -18,6 +18,8 @@ import datetime
 import math
 import validations
 
+import parameter
+
 #TODO blockchain class and database decision (move to only db solution?)
 #TODO peer management and limit (use a p2p library - pyre, kademlia?)
 #TODO serialization/deserialization functions, change pickle to json?
@@ -27,7 +29,7 @@ import validations
 class StopException(Exception):
     pass
 
-class Node(object):
+class Node(object): 
     """ Main class """
 
     ctx = None
@@ -125,7 +127,7 @@ class Node(object):
             try:
                 msg, ip, block_recv = self.subsocket.recv_multipart()
                 self.f.clear()
-                newChain = False
+                newChain = False 
                 # serialize
                 b = pickle.loads(block_recv)
                 logging.info("Got block %s miner %s" % (b.hash, ip))
@@ -174,17 +176,17 @@ class Node(object):
     def mine(self, cons):
         """ Create and send block in PUB socket based on consensus """
         name = threading.current_thread().getName()
-
+        
         while True and not self.k.is_set():
-
+            
             # move e flag inside generate?
             self.start.wait()
             self.f.wait()
-
+            
             lastblock = self.bchain.getLastBlock()
             node = hashlib.sha256(self.ipaddr).hexdigest()
             self.stake = self.balance
-
+           
             # find new block
             b = cons.generateNewblock(lastblock, node, self.stake, self.e)
 
@@ -246,7 +248,7 @@ class Node(object):
                     last = self.bchain.getLastBlock()
                     # if b_error is diffent to None
                     if b_error:
-			#print("PONTO DE ERRO:", b_error.index)
+                        #print("PONTO DE ERRO:", b_error.index)
                         # TODO review from next line, because it is strange
                         # if h_error is false and block index equal last block index plus one
                         if not h_error and b_error.index == last.index+1:
@@ -254,7 +256,7 @@ class Node(object):
                             sqldb.writeBlock(b_error)
                             # trying to solve and pick a fork
                             n = self.recursiveValidate(b_error, address)
-			    #print("PONTO DO FORK:", n.index)
+                            #print("PONTO DO FORK:", n.index)
                             if n:
                                 #self.bchain.chain.clear() # TODO change this and refactor
                                 #remove all blocks after fork point
@@ -358,16 +360,17 @@ class Node(object):
                 self.f.set()
             elif cmd == rpc.MSG_STOP:
                 self.start.clear()
+                self.e.set()
                 self.rpcsocket.send_string('Stopping mining...')
             elif cmd == rpc.MSG_EXIT:
                 self.rpcsocket.send_string('Exiting...')
                 raise StopException
             elif cmd == rpc.MSG_BALANCE:
                 self.addBalance(int(messages[1]))
-                self.rpcsocket.send_string('Node Balance is ' + str(self.balance))
+                self.rpcsocket.send_string('Node Balance is ' + str(self.balance))    
             elif cmd == rpc.MSG_ADDBLOCK:
                 l = []
-                for i in messages[1:]:
+                for i in messages[1:]: 
                     l.append(i)
                 last_hash = sqldb.dbtoBlock(sqldb.blockQuery(['',str(int(l[0])-1)])).hash
                 hash_node = hashlib.sha256(self.ipaddr).hexdigest()
@@ -379,7 +382,7 @@ class Node(object):
                 #sqldb.writeChain(b)
                 self.bchain.addBlocktoBlockchain(b)
                 self.rpcsocket.send_string('Block created ' + str(b.blockInfo()))
-
+                
                 self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, pickle.dumps(b, 2)])
             else:
                 self.rpcsocket.send_string('Command unknown')
@@ -413,7 +416,7 @@ class Node(object):
         self.reqsocket.send_multipart([consensus.MSG_BLOCK, str(index)])
         logging.debug('Requesting block index %s' % index)
         m = self._poll()[0]
-	print("BLOCO REQBLOCK",m )
+        print("BLOCO REQBLOCK",m )
         return sqldb.dbtoBlock(m)
 
     def reqBlocks(self, first, last, address=None):
@@ -486,7 +489,7 @@ def main():
     threads = []
     #sqldb.databaseLocation = 'blocks/blockchain.db'
     cons = consensus.Consensus()
-
+    
     n = Node(args.ipaddr, args.port)
 
     # Connect to predefined peers

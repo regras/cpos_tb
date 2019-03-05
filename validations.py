@@ -1,6 +1,7 @@
 import consensus
 import sqldb
 import math
+import parameter
 
 def validateChallenge(block, stake):
     target = consensus.Consensus().target
@@ -37,7 +38,7 @@ def blockPosition(block, bc, stake):
 
 def validatePositionBlock(block, bc, stake):
     i = 0
-    while i < consensus.THRESHOLD:
+    while i < parameter.THRESHOLD:
         if(len(bc.chain)> 1):
             bc.chain.pop()
         chainBlock = bc.getLastBlock()
@@ -56,7 +57,7 @@ def validateChain(bc, chain, stake):
             #print("HEADER NOT OK")
             return b, True
         #print("lastblock index",lastBlock.index)
-        #print("current block index", b.index)
+        #print("current block index", b.index) 
         if validateBlock(b, lastBlock):
             #print("BLOCK OK")
             if validateChallenge(b, stake) and validateRound(b,bc):
@@ -70,7 +71,7 @@ def validateChain(bc, chain, stake):
     return None, False
 
 def validateExpectedRound(block, lastBlock):
-    calculated_rounds = int(math.floor((int(block.arrive_time) - int( lastBlock.arrive_time))/int(consensus.TIMEOUT))) + 1
+    calculated_rounds = int(math.floor((int(block.arrive_time) - int(lastBlock.arrive_time))/int(parameter.timeout))) + 1
     expected_round = lastBlock.round + calculated_rounds
     #print("BLOCK ROUND", block.round)
     #print("EXPECTED_ROUND", expected_round)

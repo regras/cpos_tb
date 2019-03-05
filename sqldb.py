@@ -1,9 +1,9 @@
 import sqlite3
 import logging
-logger = logging.getLogger(__name__)
 import block
 import blockchain
 
+logger = logging.getLogger(__name__)
 databaseLocation = 'blocks/blockchain.db'
 
 # write methods work with block objects instead of tuple from sqlite db
@@ -46,20 +46,6 @@ def dbCheck():
         genesis = bc.getLastBlock()
         print(genesis.blockInfo())
         writeChain(genesis)
-    else:
-        bc.chain.popleft()
-        chain = getChain()
-	for b in chain:
-            bc addBlocktoBlockchain(dbtoBlock(b))
-    db.commit()
-    db.close()
-    return bc
-
-def getChain():
-    db = sqlite3.connect(databaseLocation)
-    cursor = db.cursor()
-    cursor.execute('SELECT * FROM chain')
-    bc = cursor.fetchall()
     db.commit()
     db.close()
     return bc
@@ -172,3 +158,12 @@ def dbtoBlock(b):
         return b
     else:
         return block.Block(b[0],b[2],b[1],b[4],b[7],b[3],b[6])
+
+def getLastBlockIndex():
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    cursor.execute('SELECT MAX(id) FROM chain')
+    l = cursor.fetchone()
+    l = int(l[0])
+    db.close()
+    return l

@@ -3,8 +3,7 @@ from collections import deque
 import json
 import time
 import datetime
-
-GEN_ARRIVE_TIME = 1549131166
+import parameter
 
 class Blockchain:
     def __init__(self, db=None):
@@ -14,7 +13,7 @@ class Blockchain:
             b = db if isinstance(db, Block) else Block(index=db[0],round=db[1],prev_hash=db[2],b_hash=db[3],arrive_time=db[7],node=db[4],tx=db[6])
             self.chain.appendleft(b)
         else:
-            genesisBlock = Block(0,"",1,"",GEN_ARRIVE_TIME)
+            genesisBlock = Block(0,"",1,"",parameter.GEN_ARRIVE_TIME)
             self.chain.appendleft(genesisBlock)
 
     def getchain(self):
