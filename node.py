@@ -360,6 +360,7 @@ class Node(object):
                 self.f.set()
             elif cmd == rpc.MSG_STOP:
                 self.start.clear()
+                self.f.clear()
                 self.e.set()
                 self.rpcsocket.send_string('Stopping mining...')
             elif cmd == rpc.MSG_EXIT:

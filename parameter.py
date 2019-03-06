@@ -7,10 +7,10 @@ GEN_ARRIVE_TIME = 1549131166
 THRESHOLD = 2
 
 # Time in seconds
-timeout = 2
+timeout = 1
 # difficulty
 difficulty = 2
 
 ### Test Variables ###
 num_block_created = 0
-test_num_nodes = 1
+test_num_nodes = 2

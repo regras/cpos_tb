@@ -10,13 +10,13 @@ def timetocreateblocks():
     #os.system("./node")
     results = open('results.txt', 'a')
     count = 1
-    while(count < 10):
+    while(count < 11):
         if not locked:
             os.system("./blockchain-cli startmining")
             start = timer()
             locked = True
 
-        if sqldb.getLastBlockIndex()==100*count and sqldb.getLastBlockIndex()>1:
+        if sqldb.getLastBlockIndex()==(100*count) and sqldb.getLastBlockIndex()>1:
             os.system("./blockchain-cli stopmining")     
             end = timer()
             time_result = end - start
