@@ -285,14 +285,14 @@ class Node(object):
     def recursiveValidate(self, blockerror, address=None):
         index = blockerror.index - 1
         pblock = sqldb.dbtoBlock(sqldb.blockQuery(['',index])) # previous block
-	print("PBLOCK", pblock.index)
+        print("PBLOCK", pblock.index)
         trials = 3
         while index and trials:
             logging.debug('validating index %s' % index)
             chainnew = self.reqBlocks(index + 1, index + 1, address)
-	    new = chainnew[0]
-	    new = sqldb.dbtoBlock(new)
-	    print("NEW", new.index)
+            new = chainnew[0]
+            new = sqldb.dbtoBlock(new)
+            print("NEW", new.index)
             if new and validations.validateBlockHeader(new):
                 sqldb.writeBlock(new)
                 if validations.validateBlock(new, pblock) and validations.validateChallenge(new, self.stake):
@@ -301,7 +301,7 @@ class Node(object):
                 else:
                     index -= 1
                     pblock = sqldb.dbtoBlock(sqldb.blockQuery(['',index]))
-		    print("PBLOCK", pblock.index)
+                    print("PBLOCK", pblock.index)
             else:
                 trials -= 1
         return new
