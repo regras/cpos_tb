@@ -196,6 +196,7 @@ class Node(object):
                 sqldb.writeChain(b)
                 self.bchain.addBlocktoBlockchain(b)
                 self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, pickle.dumps(b, 2)])
+                time.sleep(parameter.timeout)
             else:
                 self.e.clear()
 
