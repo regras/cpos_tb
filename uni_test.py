@@ -24,6 +24,7 @@ def timetocreateblocks():
             locked = False
             results.write(str(parameter.timeout) + ',' + str(time_result) + '\n')
             count = count + 1
+    results.close()
     os.system("./blockchain-cli exit")
             
 
