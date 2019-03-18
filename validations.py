@@ -60,8 +60,8 @@ def validateChain(bc, chain, stake):
         #print("current block index", b.index) 
         if validateBlock(b, lastBlock):
             #print("BLOCK OK")
-            if validateChallenge(b, stake) and validateRound(b,bc):
-                #print("BLOCO VALIDO SINCRONIZADO")
+            if validateChallenge(b, stake) and validateRound(b,bc) and validateExpectedRound(b,lastBlock):
+                print("BLOCO VALIDO SINCRONIZADO")
                 lastBlock=b
                 bc.addBlocktoBlockchain(b)
                 sqldb.writeBlock(b)
@@ -73,9 +73,9 @@ def validateChain(bc, chain, stake):
 def validateExpectedRound(block, lastBlock):
     calculated_rounds = int(math.floor((int(block.arrive_time) - int(lastBlock.arrive_time))/int(parameter.timeout))) + 1
     expected_round = lastBlock.round + calculated_rounds
-    #print("BLOCK ROUND", block.round)
-    #print("EXPECTED_ROUND", expected_round)
-    if expected_round == block.round:
+    print("BLOCK ROUND", block.round)
+    print("EXPECTED_ROUND", expected_round)
+    if block.round >= expected_round - 1 and block.round <= expected_round + 1:
         #print("EXPECTED_ROUND", expected_round)
         return True
     else:

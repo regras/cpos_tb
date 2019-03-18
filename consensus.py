@@ -36,50 +36,48 @@ class Consensus:
     def __init__(self):
         self.type = "PoS"
         self.target = 2**(256 - parameter.difficulty) - 1
-    
-    def POS(self, lastBlock, round, node, stake, skip):
+
+    def POS(self, lastBlock, round, node, stake, skip = None):
         """ Find nonce for PoW returning block information """
         # chr simplifies merkle root and add randomness
         tx = chr(random.randint(1,100))
-        
+
         c_header = str(lastBlock.hash) + str(round) + str(node) # candidate header
-        if skip.is_set():
-            return False, False
 
         hash_result = hashlib.sha256(c_header).hexdigest()
-        print(hash_result)
+        #print(hash_result)
         #print(format(int(hash_result, 16),"0256b"))
         #print(format(self.target,"0256b"))
 
         if int(hash_result,16) < self.target:
             # print("OK")
             return hash_result, tx
-        
+
         return False, tx
 
-    def generateNewblock(self, lastBlock, node, stake, skip=False):
-        """ Loop for PoS in case of solve challenge, returning new Block object """
-        r = int(math.floor((int(time.mktime(datetime.datetime.now().timetuple())) - int(lastBlock.arrive_time)) / int(parameter.timeout))) + 1
-        
-        #while True and not skip.is_set():
-        while True :
-            round = lastBlock.round + r
-            new_hash, tx = self.POS(lastBlock, round, node, stake, skip)
-            
-            if not tx:
-                return None
+    #def generateNewblock(self, lastBlock, node, stake, skip=False):
+    #    """ Loop for PoS in case of solve challenge, returning new Block object """
+    #    r = int(math.floor((int(time.mktime(datetime.datetime.now().timetuple())) - int(lastBlock.arrive_time)) / int(parameter.timeout))) + 1
 
-            print('new block' if new_hash else 'try again!')
-            
-            if new_hash:
-                arrive_time = int(time.mktime(datetime.datetime.now().timetuple()))
-                return block.Block(lastBlock.index + 1, lastBlock.hash, round, node, arrive_time, new_hash, tx)
-            
-            time.sleep(parameter.timeout)
-            r = r + 1
+        #while True and not skip.is_set():
+    #    while True :
+
+    #	    round = lastBlock.round + r
+    #        new_hash, tx = self.POS(lastBlock, round, node, stake, skip)
+    #        if not tx:
+    #            return None
+
+    #        print('new block' if new_hash else 'try again!')
+
+    #        if new_hash:
+    #            arrive_time = int(time.mktime(datetime.datetime.now().timetuple()))
+    #            return block.Block(lastBlock.index + 1, lastBlock.hash, round, node, arrive_time, new_hash, tx)
+
+    #        time.sleep(parameter.timeout)
+    #        r = r + 1
             # print(r)
 
-        return None      
-        
+    #    return None
+
     def rawConsensusInfo(self):
         return {'difficulty': parameter.difficulty, 'type': self.type}

@@ -61,6 +61,7 @@ class Node(object):
         self.f = threading.Event()
         self.start = threading.Event()
 
+
     # Node as client
     def connect(self,d_ip='127.0.0.1',d_port=9000):
         self.subsocket.connect("tcp://%s:%s" % (d_ip, d_port))
@@ -115,6 +116,12 @@ class Node(object):
     def getPeers(self):
         return self.peers
 
+    def getThread(self):
+	return self.e
+
+    def getBchain(self):
+	return self.bchain
+
     def addBalance(self, value):
         self.balance = self.balance + value
 
@@ -137,32 +144,53 @@ class Node(object):
                     logging.debug('valid block header')
                     lb = self.bchain.getLastBlock()
 
-                    if ((b.index - lb.index == 1) and 
-                         validations.validateBlock(b, lb) and 
-                         validations.validateRound(b, self.bchain) and 
-                         validations.validateChallenge(b, self.stake) and 
-                         validations.validateExpectedRound(b,lb)):
-                        self.e.set()
-                        self.bchain.addBlocktoBlockchain(b)
-                        sqldb.writeBlock(b)
-                        sqldb.writeChain(b)
+                    if (b.index - lb.index == 1):
+			 print('BLOCK', lb.index)
+			 print('VALIDATEBLOCK', validations.validateBlock(b,lb))
+		         print('VALIDATEROUND', validations.validateRound(b,self.bchain))
+			 print('VALIDATECHALLENGE', validations.validateChallenge(b,self.stake))
+			 if(validations.validateBlock(b,lb)):
+                             if(validations.validateRound(b, self.bchain) and 
+                         	validations.validateChallenge(b, self.stake) and 
+                         	validations.validateExpectedRound(b,lb)):
+				    #print('NOVO BLOCO RECEBIDO---ACEITO SEM PROBLEMAS')
+			 	    self.e.set()
+                       	 	    self.bchain.addBlocktoBlockchain(b)
+                         	    sqldb.writeBlock(b)
+                         	    sqldb.writeChain(b)
+			 else:
+			    if(validations.validateRound(b, self.bchain) and
+                               validations.validateChallenge(b, self.stake) and
+                               validations.validateExpectedRound(b,lb)):
+			  	   print('NOVO BLOCO RECEBIDO---PROVAVEL FORK PASSADO')
+			           self.e.set()
+			           self.synced = False
+			 	   self.sync(b,ip)
+
                         # rebroadcast
-                        #logging.debug('rebroadcast')
-                        self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b, 2)])
+                         logging.debug('rebroadcast')
+                         self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b, 2)])
+                         #self.e.clear()
+
                     elif b.index - lb.index > 1:
+		    	self.e.set()
                         self.synced = False
                         self.sync(b, ip)
+		    #	self.e.clear()
+
                     elif b.index == lb.index:
                         if b.hash == lb.hash:
                             logging.debug('retransmission')
                         else:
-                            logging.debug('possible fork')
-                            if (validations.validateBlock(b, lb) and 
-                               validations.validateChallenge(b, self.stake) and
-                               validations.validateRound(b, self.bchain) and
-                               validations.validateExpectedRound(b,lb)):
+			    if(b.round == lb.round):
+                            	logging.debug('possible fork')
+				pre_block = sqldb.dbtoBlock(sqldb.blockQuery(['',lb.index - 1])) #get the block that b and lb point.
+
+                            	if (validations.validateBlock(b, pre_block) and 
+                               	validations.validateChallenge(b, self.stake) and
+                                validations.validateExpectedRound(b,pre_block)):
                                 # double entry
-                                sqldb.writeBlock(b)
+                                    sqldb.writeBlock(b)
                     else:
                         # ignore old block
                         logging.debug('old')
@@ -176,21 +204,20 @@ class Node(object):
     def mine(self, cons):
         """ Create and send block in PUB socket based on consensus """
         name = threading.current_thread().getName()
-        
+
         while True and not self.k.is_set():
-            
             # move e flag inside generate?
             self.start.wait()
             self.f.wait()
-            
+
             lastblock = self.bchain.getLastBlock()
             node = hashlib.sha256(self.ipaddr).hexdigest()
             self.stake = self.balance
-           
-            # find new block
-            b = cons.generateNewblock(lastblock, node, self.stake, self.e)
 
-            if b and not self.e.is_set():
+            # find new block
+            b = self.generateNewblock(lastblock, node, self.stake, cons)
+
+	    if b and not self.e.is_set():
                 logging.info("Mined block %s" % b.hash)
                 sqldb.writeBlock(b)
                 sqldb.writeChain(b)
@@ -198,7 +225,30 @@ class Node(object):
                 self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, pickle.dumps(b, 2)])
                 time.sleep(parameter.timeout)
             else:
-                self.e.clear()
+		if(self.synced == True):
+                     self.e.clear()
+
+    def generateNewblock(self, lastBlock, node, stake, cons):
+    	""" Loop for PoS in case of solve challenge, returning new Block object """
+    	r = int(math.floor((int(time.mktime(datetime.datetime.now().timetuple())) - int(lastBlock.arrive_time)) / int(parameter.timeout))) + 1
+
+        #while True and not skip.is_set():
+        while not self.e.is_set():
+
+            round = lastBlock.round + r
+            new_hash, tx = cons.POS(lastBlock, round, node, stake)
+            if not tx:
+                return None
+
+            print('new block' if new_hash else 'try again!')
+
+            if new_hash:
+                arrive_time = int(time.mktime(datetime.datetime.now().timetuple()))
+                return block.Block(lastBlock.index + 1, lastBlock.hash, round, node, arrive_time, new_hash, tx)
+
+            time.sleep(parameter.timeout)
+            r = r + 1
+        return None
 
     def probe(self):
         for i in self.peers:
@@ -211,7 +261,6 @@ class Node(object):
         rBlock -- can be passed as argument to sync based on that block index instead of requesting
         address -- try to force requests to use this ip address
         """
-        self.synced = True
         logging.debug('syncing...')
         # Request before sync
         if not rBlock:
@@ -228,80 +277,119 @@ class Node(object):
                     address = ip
                     logging.debug('Best index %s with ip %s' % (b.index, ip))
         last = self.bchain.getLastBlock()
+	#print('rBLOCK', rBlock.index)
         # Sync based on rBlock
         if (rBlock.index > last.index):
 	    #print("RBLOCK", rBlock.index)
-            self.e.set()
-            if ((rBlock.index-last.index == 1) and 
-                validations.validateBlock(rBlock, last) and 
-                validations.validateBlockHeader(rBlock) and
-                validations.validateChallenge(rBlock, self.stake)):
-                logging.debug('valid block')
-                sqldb.writeBlock(rBlock)
-                sqldb.writeChain(rBlock)
-                self.bchain.addBlocktoBlockchain(rBlock)
-            else:
-                chain = self.reqBlocks(last.index+1, rBlock.index, address)
-                if  chain:
-                    # validate and write
-                    b_error, h_error = validations.validateChain(self.bchain, chain, self.stake)
-                    # update last block
-                    last = self.bchain.getLastBlock()
-                    # if b_error is diffent to None
-                    if b_error:
-                        #print("PONTO DE ERRO:", b_error.index)
-                        # TODO review from next line, because it is strange
-                        # if h_error is false and block index equal last block index plus one
-                        if not h_error and b_error.index == last.index+1:
-                            logging.debug('fork')
-                            sqldb.writeBlock(b_error)
-                            # trying to solve and pick a fork
-                            n = self.recursiveValidate(b_error, address)
-                            #print("PONTO DO FORK:", n.index)
-                            if n:
-                                #self.bchain.chain.clear() # TODO change this and refactor
-                                #remove all blocks after fork point
-                                for i in xrange(n.index,last.index + 1):
-                                    self.bchain.chain.popleft()
+            if (rBlock.index-last.index == 1):
 
-                                #insert new blocks starting on n block
-                                for i in xrange(n.index,last.index+1):
-                                    logging.debug('updating chain')
-                                    if i == 1:
-                                        sqldb.replaceChain(n)
-                                        self.bchain.addBlocktoBlockchain(n)
-                                    else:
-                                        n = sqldb.forkUpdate(i)
-                                        sqldb.replaceChain(n)
-                                        self.bchain.addBlocktoBlockchain(sqldb.dbtoBlock(n))
-                                #validations.validateChain(self.bchain, chain, self.stake)
-                        else:
-                            logging.debug('invalid') # request again
-                            new = self.reqBlock(b_error.index)
-                            self.sync(new)
+                if(validations.validateBlockHeader(rBlock) and
+                validations.validateChallenge(rBlock, self.stake) and
+		validations.validateExpectedRound(rBlock,last)):
+		     if(validations.validateBlock(rBlock,last)):
+			 #print('SYNC-BLOCO CADEIA ATUAL')
+                         logging.debug('valid block')
+                         sqldb.writeBlock(rBlock)
+                         sqldb.writeChain(rBlock)
+                         self.bchain.addBlocktoBlockchain(rBlock)
+	             else:
+			 #print('SYNC-BLOCO OUTRA CADEIA')
+                         sqldb.writeBlock(rBlock)
+			 # trying to solve and pick a fork
+                         n = self.recursiveValidate(rBlock, address)
+                         #print('B_ERROR', b_error.index)
+                         #print("PONTO DO FORK:", n.index)
+                         if n:
+                            #self.bchain.chain.clear() # TODO change this and refactor
+                            #remove all blocks after fork point
+                            for i in xrange(n.index,last.index + 1):
+                                 self.bchain.chain.popleft()
+                            #insert new blocks starting on n block
+                            for i in xrange(n.index,last.index+1):
+                                logging.debug('updating chain')
+                                if i == 1:
+                                    sqldb.replaceChain(n)
+                                    self.bchain.addBlocktoBlockchain(n)
+				else:
+                                    n = sqldb.forkUpdate(i)
+                                    sqldb.replaceChain(n)
+                                    self.bchain.addBlocktoBlockchain(sqldb.dbtoBlock(n))
+		     self.synced = True
+
+            else:
+	        if(validations.validateBlockHeader(rBlock) and
+                validations.validateChallenge(rBlock, self.stake) and
+                validations.validateExpectedRound(rBlock,last)):
+                    chain = self.reqBlocks(last.index+1, rBlock.index, address)
+                    if  chain:
+                        # validate and write
+                        b_error, h_error = validations.validateChain(self.bchain, chain, self.stake)
+                        # update last block
+                        last = self.bchain.getLastBlock()
+
+		        # if b_error is diffent to None
+                        if b_error:
+			    # TODO review from next line, because it is strange
+                            # if h_error is false and block index equal last block index plus one
+                            if not h_error and b_error.index == last.index+1:
+                                logging.debug('fork')
+                                sqldb.writeBlock(b_error)
+                                # trying to solve and pick a fork
+                                n = self.recursiveValidate(b_error, address)
+			        print('B_ERROR', b_error.index)
+                                print("PONTO DO FORK:", n.index)
+                                if n:
+                                   #self.bchain.chain.clear() # TODO change this and refactor
+                                   #remove all blocks after fork point
+                                   for i in xrange(n.index,last.index + 1):
+                                        self.bchain.chain.popleft()
+
+                                   #insert new blocks starting on n block
+                                   for i in xrange(n.index,last.index+1):
+                                         logging.debug('updating chain')
+                                         if i == 1:
+                                             sqldb.replaceChain(n)
+                                             self.bchain.addBlocktoBlockchain(n)
+                                         else:
+                                             n = sqldb.forkUpdate(i)
+                                             sqldb.replaceChain(n)
+                                             self.bchain.addBlocktoBlockchain(sqldb.dbtoBlock(n))
+                                   #validations.validateChain(self.bchain, chain, self.stake)
+                                self.synced = True
+                            else:
+                                logging.debug('invalid') # request again
+			        chainnew = self.reqBlocks(b_error.index, b_error.index, address)
+			        new = chainnew[0]
+			        new = sqldb.dbtoBlock(new)
+			        #print('NEW RETURN SYNC', new.index)
+        			self.sync(new)
+			else:
+			    self.synced = True
+	else:
+            self.synced = True	
         logging.debug('synced')
 
 
     def recursiveValidate(self, blockerror, address=None):
         index = blockerror.index - 1
         pblock = sqldb.dbtoBlock(sqldb.blockQuery(['',index])) # previous block
-        print("PBLOCK", pblock.index)
         trials = 3
         while index and trials:
             logging.debug('validating index %s' % index)
             chainnew = self.reqBlocks(index + 1, index + 1, address)
             new = chainnew[0]
             new = sqldb.dbtoBlock(new)
-            print("NEW", new.index)
+            #print("NEW", new.index)
             if new and validations.validateBlockHeader(new):
                 sqldb.writeBlock(new)
                 if validations.validateBlock(new, pblock) and validations.validateChallenge(new, self.stake):
                     logging.debug('returning')
+		    #print('FORK', new.index)
                     return new
                 else:
                     index -= 1
                     pblock = sqldb.dbtoBlock(sqldb.blockQuery(['',index]))
-                    print("PBLOCK", pblock.index)
+                    #print("PBLOCK", pblock.index)
             else:
                 trials -= 1
         return new
