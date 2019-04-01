@@ -98,6 +98,7 @@ def writeChain(b):
 def replaceChain(b):
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
+    print('BLOCK TO INSERT OR REPLACE ON CHAIN TABLE', b)
     try:
         if isinstance(b, tuple):
             cursor.execute('REPLACE INTO chain VALUES (?,?,?,?,?,?,?,?)', b)
@@ -123,6 +124,15 @@ def forkUpdate(index):
     cursor.execute('SELECT * FROM blocks WHERE id = {0} AND prev_hash = (SELECT hash FROM chain WHERE id = {1})'.format(index,index-1))
     b = cursor.fetchone()
     #cursor.execute('REPLACE INTO chain VALUES (?,?,?,?,?,?,?)', b)
+    db.close()
+    return b
+
+
+def blockQueryFork(messages):
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    cursor.execute('SELECT * FROM blocks WHERE id = ?', (messages[1],))
+    b = cursor.fetchall()
     db.close()
     return b
 
