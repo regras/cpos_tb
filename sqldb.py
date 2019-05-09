@@ -12,22 +12,22 @@ def dbConnect():
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
     cursor.execute("""CREATE TABLE IF NOT EXISTS blocks (
-        id integer NOT NULL, 
-        round integer, 
-        prev_hash text, 
-        hash text NOT NULL, 
-        node text, 
-        mroot text, 
+        id integer NOT NULL,
+        round integer,
+        prev_hash text,
+        hash text NOT NULL,
+        node text,
+        mroot text,
         tx text,
-        arrive_time text, 
+        arrive_time text,
         PRIMARY KEY (id, hash))""")
     cursor.execute("""CREATE TABLE IF NOT EXISTS chain (
-        id integer NOT NULL, 
-        round integer, 
-        prev_hash text, 
-        hash text NOT NULL, 
-        node text, 
-        mroot text, 
+        id integer NOT NULL,
+        round integer,
+        prev_hash text,
+        hash text NOT NULL,
+        node text,
+        mroot text,
         tx text,
         arrive_time text,
         PRIMARY KEY (id))""")
@@ -46,6 +46,8 @@ def dbCheck():
         genesis = bc.getLastBlock()
         print(genesis.blockInfo())
         writeChain(genesis)
+        #wwriteBlock(genesis)
+
     db.commit()
     db.close()
     return bc
@@ -53,7 +55,7 @@ def dbCheck():
 def writeBlock(b):
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
-    
+
     try:
         if isinstance(b, list):
             cursor.executemany('INSERT INTO blocks VALUES (?,?,?,?,?,?,?,?)', b)
@@ -177,3 +179,51 @@ def getLastBlockIndex():
     l = int(l[0])
     db.close()
     return l
+
+def quantityofBlocks():
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    cursor.execute('SELECT COUNT(*) FROM blocks')
+    l = cursor.fetchone()
+    if l is not None:
+        l = int(l[0])
+    else:
+        l = 0
+    db.close()
+    return l
+
+def getQuantityForks():
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    cursor.execute('SELECT COUNT(*) FROM (SELECT COUNT(*) FROM blocks GROUP BY id HAVING COUNT(*) > 1)')
+    l = cursor.fetchone()
+    if l is not None:
+        l = int(l[0])
+    else:
+        l = 0
+    db.close()
+    return l
+
+def getallchain():
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    cursor.execute('SELECT * FROM chain')
+    l = cursor.fetchall()
+    chain = []
+    for b in l:
+        chain.append(dbtoBlock(b))
+
+    db.close()
+    return chain
+
+def getallblocks():
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    cursor.execute('SELECT * FROM blocks')
+    l = cursor.fetchall()
+    tree=[]
+    for b in l:
+        tree.append(dbtoBlock(b))
+
+    db.close()
+    return tree

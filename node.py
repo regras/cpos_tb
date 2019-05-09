@@ -230,7 +230,7 @@ class Node(object):
 
     def generateNewblock(self, lastBlock, node, stake, cons):
         """ Loop for PoS in case of solve challenge, returning new Block object """
-        r = int(math.floor((int(time.mktime(datetime.datetime.now().timetuple())) - int(lastBlock.arrive_time)) / int(parameter.timeout))) + 1
+        r = int(math.floor((int(time.mktime(datetime.datetime.now().timetuple())) - int(lastBlock.arrive_time)) / parameter.timeout)) + 1
 
         #while True and not skip.is_set():
         while not self.e.is_set():

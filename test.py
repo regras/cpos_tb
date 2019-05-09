@@ -32,9 +32,11 @@ def timetocreateblocks():
         shuffle(ips)
         peers = ' '.join(ips)
         info('*** Blockchain node starting on %s\n' % h)
-        h.cmd('python node.py -i', h.IP(), '-p 9000 --miner --peers %s &' % peers)
-	h.cmd('cd rpc')
-	h.cmd('./rpcclient.py startmining')
+        #h.cmd('python node.py -i', h.IP(), '-p 9000 --miner --peers %s &' % peers)
+        h.cmd('python node.py -i', h.IP(), '-p 9000 --peers %s &' % peers)
+	#h.cmd('python uni_test.py &')
+        #h.cmd('cd rpc')
+	#h.cmd('./rpcclient.py startmining')
     
         #if(h.IP() == '10.0.0.1'):
             #h.cmd('python uni_test.py')
@@ -61,9 +63,9 @@ def timetocreateblocks():
         #         info('Para um' ,parameter.timeout, end - start)
         #         locked = False
         #         count = count + 1
-        # for h in net.hosts:
-        #    info('*** Creating 100 blocks in %s ***\n' % h)
-        #    h.cmd('python uni_test.py')
+    for h in net.hosts:
+        info('*** Creating 100 blocks in %s ***\n' % h)
+        h.cmd('python uni_test.py &')
     #net.get('h1').cmd('python uni_test.py &')
     CLI( net )    
     net.stop()
