@@ -77,7 +77,7 @@ class Consensus:
     #        r = r + 1
             # print(r)
 
-    #    return None
+        return None
 
     def rawConsensusInfo(self):
         return {'difficulty': parameter.difficulty, 'type': self.type}
