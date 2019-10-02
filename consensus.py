@@ -14,6 +14,8 @@ MSG_BLOCK = 'block'
 MSG_BLOCKS = 'getblocks'
 MSG_HELLO = 'hello'
 MSG_PEERS = 'peers'
+MSG_LEAVES = 'leaves'
+MSG_BLOCKCHAIN = 'blockchain'
 
 
 def handleMessages(bc, messages):
@@ -27,6 +29,10 @@ def handleMessages(bc, messages):
         return sqldb.blocksQuery(messages)
     elif cmd == MSG_BLOCK:
         return sqldb.blockQuery(messages)
+    elif cmd == MSG_LEAVES:
+        return sqldb.dbCheckLeaf(bc)
+    elif cmd == MSG_BLOCKCHAIN:
+        return sqldb.dbCheckChain([messages[1], messages[2]])
     else:
         return None
 
@@ -37,12 +43,12 @@ class Consensus:
         self.type = "PoS"
         self.target = 2**(256 - parameter.difficulty) - 1
 
-    def POS(self, lastBlock, round, node, stake, skip = None):
+    def POS(self, lastBlock_hash, round, node, stake, skip = None):
         """ Find nonce for PoW returning block information """
         # chr simplifies merkle root and add randomness
         tx = chr(random.randint(1,100))
 
-        c_header = str(lastBlock.hash) + str(round) + str(node) # candidate header
+        c_header = str(lastBlock_hash) + str(round) + str(node) # candidate header
 
         hash_result = hashlib.sha256(c_header).hexdigest()
         #print(hash_result)

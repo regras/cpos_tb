@@ -73,8 +73,17 @@ def validateChain(bc, chain, stake):
 def validateExpectedRound(block, lastBlock):
     calculated_rounds = int(math.floor((int(block.arrive_time) - int(lastBlock.arrive_time))/parameter.timeout)) + 1
     expected_round = lastBlock.round + calculated_rounds
-    print("BLOCK ROUND", block.round)
-    print("EXPECTED_ROUND", expected_round)
+    if block.round >= expected_round - 1 and block.round <= expected_round + 1:
+        #print("EXPECTED_ROUND", expected_round)
+        return True
+    else:
+        return False
+        
+def validateExpectedLocalRound(block, leaf_round, leaf_arrive_time):
+    calculated_rounds = int(math.floor((int(block.arrive_time) - int(leaf_arrive_time))/parameter.timeout))
+    expected_round = leaf_round + calculated_rounds
+    #print("BLOCK ROUND", block.round)
+    #print("EXPECTED_ROUND", expected_round)
     if block.round >= expected_round - 1 and block.round <= expected_round + 1:
         #print("EXPECTED_ROUND", expected_round)
         return True
