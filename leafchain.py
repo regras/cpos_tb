@@ -39,6 +39,10 @@ class Leafchain:
             self.prevRoundMainChain = 1
             self.prevHashMainChain = l.leaf_hash
    
+    def setLastArrivedTime(self,arrive_time):
+        self.lastArrivedTime = arrive_time
+
+            
     def getLenLeaf(self):
         return (len(self.leaf)) 
 
@@ -77,7 +81,7 @@ class Leafchain:
     
     def IsLeaf(self, block_hash):
         for k, l in self.leaf.iteritems():
-            if(block_hash == l.hash):
+            if(block_hash == l[0].leaf_hash):
                 return True
         return False
         
@@ -85,14 +89,14 @@ class Leafchain:
         for k,l in self.leaf.iteritems():
             if(self.leaf[k][0].leaf_round > block.round):
                 prev_block = sqldb.dbtoBlock(sqldb.blockHashQuery(['',self.leaf[k][0].leaf_prev_hash]))
-                sqldb.removeBlock(['',self.l[k][0].leaf_hash])
+                sqldb.removeBlock(['',self.leaf[k][0].leaf_hash])
                 if(not self.IsLeaf(prev_block.hash) and (prev_block.hash != block.prev_hash)):
 
                     new_prev2_block = sqldb.dbtoBlock(sqldb.blockHashQuery(['',prev_block.prev_hash]))
-                    if(new_pre2_block):
+                    if(new_prev2_block):
                         self.leaf[k][0].leaf_prev2_round = new_prev2_block.round
                         self.leaf[k][0].leaf_prev2_hash = new_prev2_block.hash
-                        self.leaf[k][0].leaf_prev2_arrivedTime = new_prev2_block.arrivedTime
+                        self.leaf[k][0].leaf_prev2_arrivedTime = new_prev2_block.arrive_time
 
                         self.leaf[k][0].leaf_prev_round = self.leaf[k][0].leaf_prev2_round 
                         self.leaf[k][0].leaf_prev_hash = self.leaf[k][0].leaf_prev2_hash
@@ -103,33 +107,13 @@ class Leafchain:
                         self.leaf[k][0].leaf_prev_hash = prev_block.prev_hash
                         self.leaf[k][0].leaf_index = prev_block.index
                         self.leaf[k][0].leaf_arrivedTime = prev_block.arrive_time
-                    else:
-                        self.leaf[k][0].leaf_prev2_round = prev_block.round
-                        self.leaf[k][0].leaf_prev2_hash = prev_block.hash
-                        self.leaf[k][0].leaf_prev_hash = prev_block.prev_hash
-                        self.leaf[k][0].leaf_index = prev_block.index
-                        self.leaf[k][0].leaf_arrivedTime = prev_block.arrive_time
-
-                        self.leaf[k][0].leaf_round = prev_block.round
-                        self.leaf[k][0].leaf_hash = prev_block.hash
-                        self.leaf[k][0].leaf_prev_hash = prev_block.prev_hash
-                        self.leaf[k][0].leaf_index = prev_block.index
-                        self.leaf[k][0].leaf_arrivedTime = prev_block.arrive_time
-                        
-                        self.leaf[k][0].leaf_round = prev_block.round
-                        self.leaf[k][0].leaf_hash = prev_block.hash
-                        self.leaf[k][0].leaf_prev_hash = prev_block.prev_hash
-                        self.leaf[k][0].leaf_index = prev_block.index
-                        self.leaf[k][0].leaf_arrivedTime = prev_block.arrive_time
-                        
-
                 else:
                     del self.leaf[k]
         #print (self.leaf)        
        
-    def addBlockLeaf(self,pos, block):
+    def addBlockLeaf(self,pos, block, sync=False):
         #inserting block on the chain's top
-        if(self.leaf[pos][0].leaf_hash == block.prev_hash):
+        if(self.leaf[pos][0].leaf_hash == block.prev_hash and not sync):
             if(self.indexMainChain < block.index):
 
                 self.UpdateMainChain(block)
@@ -188,7 +172,7 @@ class Leafchain:
                     self.leaf[pos][0].leaf_arrivedTime = block.arrive_time
                     self.updateLeaf(block)
 
-        elif(self.leaf[pos][0].leaf_prev_hash == block.prev_hash):
+        elif(self.leaf[pos][0].leaf_prev_hash == block.prev_hash and not sync):
             print("POSSIVEL NOVO FORK")
             if (block.round > self.roundMainChain):
                 print("Round Maior")
@@ -221,7 +205,7 @@ class Leafchain:
 
             self.leaf[max(self.leaf)+1].append(new_leaf)
             return new_leaf
-        elif(self.leaf[pos][0].prev2_hash == block.prev_hash):
+        elif(self.leaf[pos][0].leaf_prev2_hash == block.prev_hash and not sync):
 
             print("POSSIVEL NOVO FORK NO PREV2_ROUND")
             if (block.round > self.prevRoundMainChain):
@@ -243,12 +227,30 @@ class Leafchain:
             self.leaf[max(self.leaf)+1].append(new_leaf)
             return new_leaf
 
+        elif(sync):
+                self.leaf[pos][0].leaf_prev2_round = self.leaf[pos][0].leaf_prev_round
+                self.leaf[pos][0].leaf_prev2_hash = self.leaf[pos][0].leaf_prev_hash
+                self.leaf[pos][0].leaf_prev2_arrivedTime = self.leaf[pos][0].leaf_prev_arrivedTime
+
+                self.leaf[pos][0].leaf_prev_round = self.leaf[pos][0].leaf_round
+                self.leaf[pos][0].leaf_prev_hash = self.leaf[pos][0].leaf_hash
+                self.leaf[pos][0].leaf_prev_arrivedTime = self.leaf[pos][0].leaf_arrivedTime
+
+                self.leaf[pos][0].leaf_round = block.round
+                self.leaf[pos][0].leaf_hash = block.hash
+                self.leaf[pos][0].leaf_prev_hash = block.prev_hash
+                self.leaf[pos][0].leaf_arrivedTime = block.arrive_time
+
+                self.leaf[pos][0].leaf_index = block.index
+
+                return self.leaf[pos][0]
+
         return self.leaf[pos][0]    
 
     def UpdateMainChain(self,block):
         prev_block = None
-        while not prev_block:
-            prev_block = sqldb.dbtoBlock(sqldb.blockHashQuery(['',block.prev_hash]))
+        #while not prev_block:
+        prev_block = sqldb.dbtoBlock(sqldb.blockHashQuery(['',block.prev_hash]))
         
         self.indexMainChain = block.index
         self.roundMainChain = block.round
@@ -261,12 +263,18 @@ class Leafchain:
         #print(prev_block.hash)
         #print("prevIndexMainChain")
         #print(prev_block.index)
-        self.prevIndexMainChain = prev_block.index
-        print("previndexMainChain")
-        print(self.prevIndexMainChain)
-    
-        self.prevRoundMainChain = prev_block.round
-        self.prevHashMainChain = prev_block.hash
+        if(prev_block):
+            self.prevIndexMainChain = prev_block.index
+            print("previndexMainChain")
+            print(self.prevIndexMainChain)
+            self.prevRoundMainChain = prev_block.round
+            self.prevHashMainChain = prev_block.hash
+        else:
+            self.prevIndexMainChain = block.index
+            print("previndexMainChain")
+            print(self.prevIndexMainChain)
+            self.prevRoundMainChain = block.round
+            self.prevHashMainChain = block.hash
 
         self.lastArrivedTime = block.arrive_time
 

@@ -8,7 +8,7 @@ from configparser import SafeConfigParser
 import block
 import blockchain
 import leafchain
-import leaf
+from leaf import Leaf
 import consensus
 import sqldb
 import pickle
@@ -66,6 +66,8 @@ class Node(object):
 
         #flag sync
         self.threadSync = threading.Event()
+        self.threadSync.clear()
+        #self.startSync = threading.Event()
 
         #miner thread
         self.miner_thread = None
@@ -145,6 +147,24 @@ class Node(object):
     def addBalance(self, value):
         self.balance = self.balance + value
 
+    #def initialSyncNode(self):
+    #    while True and self.startSync.is_set():
+    #        msg, ip, block_recv = self.subsocket.recv_multipart()
+    #        b = pickle.loads(block_recv)
+    #        i = 0
+    #        arrivedTime = self.leafchains.getLastArrivedTime()
+    #        round = self.leafchains.getRoundMainChain()
+
+    #        if(validations.validateExpectedLocalRound(b,round,arrivedTime)):
+    #            i = i + 1
+    #            self.leafchains.setLastArrivedTime(arrivedTime)
+    #            self.leafchains.setRoundMain(round)
+
+    #        arrivedTime = b.arrive_time
+    #        round = b.round
+    #        if (i == 3):
+    #            self.startSync.clear()
+
     def listen(self):
         """ Listen to block messages in a SUB socket
             Message frames: [ 'block', ip, block data ]
@@ -160,6 +180,8 @@ class Node(object):
                     b = pickle.loads(block_recv)
                     logging.info("Got block %s miner %s" % (b.hash, ip))
                     b.arrive_time = int(time.mktime(datetime.datetime.now().timetuple()))
+
+                    
                     # Verify block
                     if validations.validateBlockHeader(b):
                         logging.debug('valid block header')
@@ -219,14 +241,15 @@ class Node(object):
                                         print("Block with invalid round or the challenge was not reached.")
                                     findPlace = True    
                                     break
-                        if(not findPlace):
-                            if(b.index - self.leafchains.getIndexMainChain() > 1):
-                                self.synced = False
-                                self.ipLastBlock = ip
-                                self.lastBlock = b
-                                self.threadSync.set()
-                                #possible desync
-                                #self.sync(None,ip)        
+
+                        if(not findPlace and not self.threadSync.is_set()):
+                            print("call sync function")
+                            self.synced = False
+                            self.ipLastBlock = ip
+                            self.lastBlock = b
+                            self.threadSync.set()
+                            #possible desync
+                            #self.sync(None,ip)        
 
                     #if(not findPlace):
                     #    if(b.index - self.leafchains.getIndexMainChain() > 1):
@@ -417,8 +440,8 @@ class Node(object):
                     self.e.set() #semaforo
                     arrive_time = int(time.mktime(datetime.datetime.now().timetuple()))
                     new_block = block.Block(l[0].leaf_index + 1, l[0].leaf_hash, round, node, arrive_time, new_hash, tx)
-                    print("NEW BLOCK --INDEX")
-                    print(new_block.index)
+                    #print("NEW BLOCK --INDEX")
+                    #print(new_block.index)
                     new_leaf = self.leafchains.addBlockLeaf(k,new_block)
                     sqldb.writeChainLeaf(new_leaf,new_block)
                     self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, pickle.dumps(new_block, 2)])
@@ -447,7 +470,7 @@ class Node(object):
             #get rBlock of all LocalChains
             #verificar de qual rBlock pertence o bloco. 
             if(self.threadSync.is_set()):
-                for i in xrange(0,min(len(self.peers),3)):
+                #for i in xrange(0,min(len(self.peers),3)):
                     #i+=1
                     #reqLeaf = self.reqLeaves(self.ipLastBlock)
                 #self.threadSync.wait()
@@ -455,24 +478,83 @@ class Node(object):
                 #logging.debug('Leaves index %s' % b.index)
                     #if(reqLeaf):
                     #reqleafs = reqLeaf.getLeafs()
-                    chain = None
+                chain = None
+                leafs = self.leafchains.getLeafs()
+                knowChains = defaultdict(list)
+                syncT = False
+                for k,l in list(leafs.iteritems()):
+                    if(self.lastBlock.index > l[0].leaf_index):
+                        #searching the remain blocks of the know Chains 
+                        chain = self.reqBlocksChain(l[0].leaf_hash, self.lastBlock.hash, self.ipLastBlock)
+                        print("remain block chain")
+                        print(chain)
+                        if(chain):
+                            self.insertChain(k, chain)
+                            syncT = True
+                            break
+
+                if(not syncT):
+                    
+                    #searching all blocks of the possible unknow Chains
                     leafs = self.leafchains.getLeafs()
-                    for k,l in list(leafs.iteritems()):
-                        if(self.lastBlock.index > l[0].leaf_index):
-                            chain = self.reqBlocksChain(l[0].leaf_hash, self.lastBlock.hash, self.ipLastBlock)
-                            if(chain):
-                                self.insertChain(k, chain)
-                                break
+                    i = 0
+                    for k, l in list(leafs.iteritems()):
+                        knowChains[i].append(l[0].leaf_hash)
+                        i = i + 1
+            
+                    heads = self.reqUnknowChain(knowChains)
+                    print("HEADS")
+                    print(heads)
+                    if (heads):
+                        heads = pickle.loads(heads)
+                        for item in heads:
+                            chain = self.reqAllChain(item, self.ipLastBlock)
+                            if (chain):
+                                self.insertAllChain(chain)
                 self.synced = True
                 self.threadSync.clear()
-                            
-    def insertChain(self,k,chain):
+
+    def insertAllChain(self, chain):
         if(chain):
+            i = 0
+            for db in chain:
+                if(i == 0):
+                    forkPoint = sqldb.searchForkPoint(db)
+                    head = db[3]
+
+                b = sqldb.dbtoBlock(db)                
+
+                l = Leaf(leaf_node=db[4],leaf_index=db[0],leaf_head=head,leaf_prev_head=forkPoint[9],
+                leaf_bhash=db[3], leaf_round=db[1],leaf_arrivedTime=db[7],leaf_prev_hash=db[10],
+                leaf_prev_round=db[11],leaf_prev_arrivedTime=db[12],leaf_prev2_hash=db[13],
+                leaf_prev2_round=db[14],leaf_prev2_arrivedTime=db[15])
+                print("inserindo bloco cadeia desconhecida")
+                print(b.index)
+                sqldb.writeChainLeaf(l,b)
+
+                if(i == (len(chain) - 1)):
+                    self.leafchains.appendLeaf(db)    
+                                    
+                i = i + 1
+
+
+    def insertChain(self,k,chain):
+        print("remain chain index")
+        leafs = self.leafchains.getLeafs()
+        print(leafs[k][0].leaf_index)
+        if(chain):
+            i = 0
             for itemChain in chain:
                 b = sqldb.dbtoBlock(itemChain)
-                new_leaf = self.leafchains.addBlockLeaf(k,b)
-                sqldb.writeChainLeaf(new_leaf,b)
+                new_leaf = self.leafchains.addBlockLeaf(k,b,True)
+                if(new_leaf):
+                    sqldb.writeChainLeaf(new_leaf,b)
+                if(i == len(chain) - 1):
+                    if(self.getIndexMainChain() < b.index):
+                        self.leafchains.UpdateMainChain(b)
+                
 
+        
 
     #def sync(self, rBlock=None, address=None):
     #    """ Syncronize with peers and validate chain
@@ -860,6 +942,32 @@ class Node(object):
             #logging.debug('Requesting blocks %s to %s', first, last)
             m = self._poll()[0]
         return m
+
+    def reqAllChain(self, head, address=None):
+        if address:
+            self.router.connect("tcp://%s:%s" %(address, self.port+1))
+            time.sleep(1)
+            self.router.send_multipart([consensus.MSG_ALLCHAIN,str(head)])
+            m = self._poll(self.router)[0]
+            self.router.disconnect("tcp://%s:%s" % (address, self.port+1))
+        else:
+            self.reqsocket.send_multipart([consensus.MSG_ALLCHAIN,str(head)])
+            #logging.debug('Requesting blocks %s to %s', first, last)
+            m = self._poll()[0]
+        return m
+
+    def reqUnknowChain(self, hashes, address=None):
+        if address:
+            self.router.connect("tcp://%s:%s" %(address, self.port+1))
+            time.sleep(1)
+            self.router.send_multipart([consensus.MSG_UNKNOWBLOCKCHAIN,pickle.dumps(hashes)])
+            m = self._poll(self.router)[0]
+            self.router.disconnect("tcp://%s:%s" % (address, self.port+1))
+        else:
+            self.reqsocket.send_multipart([consensus.MSG_UNKNOWBLOCKCHAIN,pickle.dumps(hashes)])
+            #logging.debug('Requesting blocks %s to %s', first, last)
+            m = self._poll()[0]
+        return m
  
     def hello(self):
         """ Messages frames: [ 'hello', ] """
@@ -938,6 +1046,12 @@ def main():
     msg_thread = threading.Thread(name='REQ/REP', target=n.messageHandler)
     msg_thread.start()
     threads.append(msg_thread)
+
+    #start sync the node.
+    #node_sync_thread = threading.Thread(name='PUB/SUB', target=n.initialSyncNode)
+    #node_sync_thread.start()
+    #threads.append(node_sync_thread)
+    #n.startSync.set()
 
     # Thread to listen broadcast messages
     listen_thread = threading.Thread(name='PUB/SUB', target=n.listen)

@@ -6,6 +6,7 @@ import leaf
 import leafchain
 import parameter
 from collections import deque, Mapping, defaultdict
+import pickle
 logger = logging.getLogger(__name__)
 databaseLocation = 'blocks/blockchain.db'
 
@@ -143,9 +144,12 @@ def dbCheckLeaf(bc):
         #leaf_db = cursor.fetchone()
         l = leafchain.Leafchain()
         writeChainLeaf(l.leaf[0][0],bc.getLastBlock())
-    #leafs = l.getLeafs()
-    #for k,t in leafs.iteritems():
-    #    print(t[0].leaf_hash)
+
+    leafs = l.getLeafs()
+    for k,t in leafs.iteritems():
+        print(t[0].leaf_hash)
+        print(t[0].leaf_round)
+        print(t[0].leaf_arrivedTime)
         
     db.commit()
     db.close()
@@ -339,6 +343,84 @@ def leavesQuery():
     db.close()
     return leafs_db
 
+def searchForkPoint(leaf):
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM localChains WHERE hash = '%s'" % leaf[2])
+    leafs_db = cursor.fetchone()
+    db.close()
+    return leafs_db
+
+def dbGetAllChain(messages):
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM localChains WHERE leaf_head = '%s' ORDER BY id ASC" % messages[0])
+    leafs_db = cursor.fetchall()
+    db.close()
+    return leafs_db
+    
+
+def dbCheckUnknowChain(messages):
+    heads = defaultdict(list)
+    hashes = pickle.loads(messages[0])
+    
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+   
+    for k,l in list(hashes.iteritems()):
+        cursor.execute("select leaf_head from localChains WHERE hash = '%s'" % l[0])
+        query = cursor.fetchone()
+        heads[k].append(query[0])
+
+    #verifyng chains that is no leaf more
+    cursor.execute('select * from localChains T1 where T1.id = (select max(T2.id) from localChains T2 where T1.leaf_head = T2.leaf_head group by T2.leaf_head)')
+    leafs_db = cursor.fetchall()
+    if(leafs_db):
+        for leaf_db in leafs_db:
+            if(checkChainIsLeaf(leaf_db)):
+                heads[max(heads) + 1].append(leaf_db[8])
+
+    
+    #return all chains that is leaf on the local blockchain
+    
+    cursor.execute("SELECT distinct leaf_head FROM localChains")
+    leafs_db = cursor.fetchall()
+    validHeads = []
+    if(leafs_db):
+        for leaf_db in leafs_db:
+            include = False
+            for k,l in list(heads.iteritems()):
+                if(leaf_db[0] == l[0]):
+                    include = True
+                    break
+
+            if(not include):
+                validHeads.append(leaf_db[0])
+    print("validHeads")
+    print(validHeads)
+    #for k, l in list(heads.iteritems()):
+        
+    #    print(l[0])
+    #    if (k < max(heads)):
+    #        query = query + "leaf_head <> '%s' or "
+    #    else:
+    #        query = query + "leaf_head <> '%s' "
+   
+    #param = ""
+    #for k, l in list(heads.iteritems()):
+    #    if(k < max(heads)):
+    #        param = param + str(l[0]) + ", "
+    #    else:
+    #        param = param + str(l[0])
+    
+    #print("PARAMETROS")
+    #print(param)
+    #cursor.execute(query % (param))
+    #query = cursor.fetchall()
+    db.close()
+    return pickle.dumps(validHeads)
+
+    
 def dbCheckChain(messages):
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
@@ -358,40 +440,55 @@ def dbCheckChain(messages):
         print("Same Chain")
         cursor.execute("SELECT * FROM localChains WHERE id > %d and leaf_head = '%s'" % (prefixId, prefixHead))
         query = cursor.fetchall()
-    else:
-        cursor.execute("SELECT id,leaf_prev_head, leaf_head FROM localChains WHERE hash ='%s'" % messages[1])
-        query = cursor.fetchone()
-        sufixId = query[0]
-        sufixPrevHead = query[1]
-        sufixHead = query[2]
+        db.close()
+        return query
+    #else:
+    #    cursor.execute("SELECT id,leaf_prev_head, leaf_head FROM localChains WHERE hash ='%s'" % messages[1])
+    #    query = cursor.fetchone()
+    #    sufixId = query[0]
+    #    sufixPrevHead = query[1]
+    #    sufixHead = query[2]
 
-        if(sufixPrevHead == prefixHead):
+    #    if(sufixPrevHead == prefixHead):
+            #encontra o ponto de fork entre as cadeias
+    #       cursor.execute("SELECT * FROM localChains WHERE id = ()" % (prefixId, prefixHead, sufixHead))
             #the chain is sufix of the other chain
-            cursor.execute("SELECT * FROM localChains WHERE id > %d and (leaf_head = '%s' or leaf_head = '%s')" % (prefixId, prefixHead, sufixHead))
-            query = cursor.fetchall()
-        else:
-            heads = defaultdict(list)
-            cursor.execute("SELECT id,leaf_prev_head, leaf_head FROM localChains WHERE hash ='%s'" % messages[1])
-            query = cursor.fetchone()
-            sufixPrevHead = query[1]
-            sufixHead = query[2]
-            l = 0
-            heads[l].append(sufixHead)
-            l = 1
-            while(sufixPrevHead != prefixHead):
-                if(sufixPrevHead != parameter.FIRST_HEAD):
-                    heads[l].append(sufixPrevHead)
-                    l = l + 1
-                    cursor.execute("SELECT min(id),leaf_prev_head, leaf_head FROM localChains WHERE leaf_hash ='%s'" % sufixPrevHead)
-                    query = cursor.fetchone()
-                    sufixPrevHead = query[1]
-                else:
-                    return None
-            heads[l].append(prefixHead)
-            print(heads)
+    #       cursor.execute("SELECT * FROM localChains WHERE id > %d and (leaf_head = '%s' or leaf_head = '%s')" % (prefixId, prefixHead, sufixHead))
+    #       query = cursor.fetchall()
+    #       db.close()
+    #       return query
 
-    db.close()
-    return query
+        #else:
+        #    heads = defaultdict(list)
+        #    cursor.execute("SELECT id,leaf_prev_head, leaf_head FROM localChains WHERE hash ='%s'" % messages[1])
+        #    query = cursor.fetchone()
+        #    sufixPrevHead = query[1]
+        #    sufixHead = query[2]
+        #    l = 0
+        #    heads[l].append(sufixHead)
+        #    l = 1
+        #    while(sufixPrevHead != prefixHead):
+        #        if(sufixPrevHead != parameter.FIRST_HEAD):
+        #            heads[l].append(sufixPrevHead)
+        #            l = l + 1
+        #            cursor.execute("SELECT min(id),leaf_prev_head, leaf_head FROM localChains WHERE leaf_hash ='%s'" % sufixPrevHead)
+        #            query = cursor.fetchone()
+        #            sufixPrevHead = query[1]
+        #        else:
+        #            return None
+        #    heads[l].append(prefixHead)
+        #    print("HEADS")
+        #    query = "SELECT * FROM localChains WHERE id > %d and (leaf_head = "
+        #    for k,l in list(heads.iteritems()):
+        #        if (k != max(heads)):
+        #            query = query + str(l[0]) + " or leaf_head = "
+        #        else:
+        #            query = query + str(l[0]) + " )"
+        #    cursor.execute(query)
+        #    query = cursor.fetchall()
+        #    return query    
+
+    
         
 def blocksListQuery(messages):
     db = sqlite3.connect(databaseLocation)
