@@ -9,10 +9,14 @@ THRESHOLD = 2
 # Time in seconds
 timeout = 8
 # difficulty
-difficulty = 0
+difficulty = 4
 
 ### Test Variables ###
 num_block_created = 0
 test_num_nodes = 8
 
 FIRST_HEAD = "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+
+AVG_LATENCY = 8
+
+TOLERANCY = AVG_LATENCY * 1.5

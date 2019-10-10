@@ -52,7 +52,7 @@ def dbConnect():
         leaf_prev2_hash text,
         leaf_prev2_round integer,
         leaf_prev2_arrive_time text,
-        fork boolean,
+        fork integer,
         PRIMARY KEY (id,leaf_head))""")
     db.commit()
     db.close()
@@ -62,9 +62,12 @@ def setForkFromBlock(block_hash):
     cursor = db.cursor()
     cursor.execute("SELECT fork FROM localChains WHERE hash = '%s'" % block_hash)
     query = cursor.fetchone()
-    forks = query[0]
-    forks = int(forks) + 1
-    cursor.execute("UPDATE localChains SET fork = '%s' WHERE hash = '%s'" % (forks, block_hash))
+
+    if(query):
+        forks = query[0]
+        forks = int(forks) + 1
+        cursor.execute("UPDATE localChains SET fork = '%s' WHERE hash = '%s'" % (forks, block_hash))
+
     db.commit()
     db.close()
 
@@ -114,6 +117,9 @@ def checkChainIsLeaf(leaf_db):
     queries = cursor.fetchall()
     if queries:
         for query in queries:
+            #print("dados bloco apos fork")
+            #print(query[0])
+            #print(query[2])
             prev_hash = query[2]
             if (prev_hash == leaf_db[3]):
                 return True
@@ -130,7 +136,7 @@ def dbCheckLeaf(bc):
     l = None
     if leafs_db:
         for leaf_db in leafs_db:
-            print(leaf_db)
+            #print(leaf_db)
             #check if the Chain is Valid
             #checkChainIsLeaf(leaf_db)
             if i == 1:
@@ -304,28 +310,80 @@ def removeBlock(messages):
 def removeLeafChain(messages):
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
-    cursor.execute("SELECT max(id), hash from localChains where leaf_head = '%s' and fork <> 0" % messages[1])
+    cursor.execute("SELECT max(id), hash, fork from localChains where leaf_head = '%s' and fork <> 0" % messages[1])
     query = cursor.fetchone()
     print("QUERY")
     print(query)
+
     if(query[1]):
         block_hash = query[1]
+        fork = query[2]
+        print("Fork")
+        print(fork)
+        fork = int(fork) - 1
         cursor.execute("DELETE FROM localChains where leaf_head = '%s' and id > (SELECT max(id) from localChains where leaf_head = '%s' and fork <> 0)" % (messages[1],messages[1]))
+        cursor.execute("UPDATE localChains set fork = %d where hash = '%s' " % (fork, block_hash))
+        db.commit()
     else:
         print("REMOVE ALL CHAIN")
-        print("PREV-HEAD")
+        print("HEAD")
         print(messages[1])
         #remove all chain.
-        cursor.execute("SELECT prev_hash from localChains where id = (SELECT min(id) from localChains where leaf_head = '%s')" % messages[1])
+        cursor.execute("SELECT *  from localChains where id = (SELECT min(id) from localChains where leaf_head = '%s')" % messages[1])
         query = cursor.fetchone()
-        block_hash = query[0]
-        print("BLOCK DO FORK")
-        print(block_hash)
-        cursor.execute("DELETE FROM LocalChains where leaf_head = '%s'" % messages[1])
+        if(query[0]):
+            cursor.execute("DELETE FROM LocalChains where leaf_head = '%s'" % messages[1])
+            db.commit()
+            #if(fork == 0):
+            #    if(not checkChainIsLeaf(query)):
+            #        block_hash = query[3]
+            #        cursor.execute("DELETE FROM LocalChains where hash = '%s'" % block_hash)
+            #        prev_hash = query[2]
+            #        cursor.execute("SELECT fork from localChains where hash = '%s'" % prev_hash)
+            #        if (query[0]):
+            #            fork = query[0]
+            #            if (fork > 0):
+            #                fork = int(fork) - 1
+            #                cursor.execute("UPDATE localChains set fork = %d where hash = '%s' " % (fork, prev_hash))
+            prev_hash = query[2]
+            cursor.execute("SELECT * from localChains where hash = '%s'" % prev_hash)
+            query = cursor.fetchone()
+            fork = query[16]
+            #print("prev hash")
+            #print(prev_hash)
+            #print("fork")
+            #print(fork)
+            #print("Hash block do fork")
+            #print(prev_hash)
+            if(int(fork) == 0):
+                if(not checkChainIsLeaf(query)):
+                    print("not checkChainIsLeaf")
+                    cursor.execute("DELETE FROM LocalChains where hash = '%s'" % prev_hash)
+                    db.commit()
+
+                    #remove one unit of the fork point before the fork that was removed
+                    prev_hash = query[2]
+                    cursor.execute("SELECT fork from localChains where hash = '%s'" % prev_hash)
+                    query = cursor.fetchone()
+                    if(query[0]):
+                        fork = query[0]
+                        if(int(fork) > 0):
+                            fork = int(fork) - 1
+                            cursor.execute("UPDATE localChains set fork = %d where hash = '%s' " % (fork, prev_hash))
+                            db.commit()
+                            
+            elif(int(fork) > 0):
+                print("Update fork point")
+                fork = int(fork) - 1
+                cursor.execute("UPDATE localChains set fork = %d where hash = '%s' " % (fork, prev_hash))       
+                db.commit()
+
+              
+
 
     db.commit()
     db.close()
-    clearForkFromBlock(block_hash) 
+    #clearForkFromBlock(block_hash) 
     
 def blocksQuery(messages):
     db = sqlite3.connect(databaseLocation)
@@ -438,7 +496,7 @@ def dbCheckChain(messages):
     query = None
     if(prefixHead == sufixHead):
         print("Same Chain")
-        cursor.execute("SELECT * FROM localChains WHERE id > %d and leaf_head = '%s'" % (prefixId, prefixHead))
+        cursor.execute("SELECT * FROM localChains WHERE id > %d and leaf_head = '%s' order by id asc " % (prefixId, prefixHead))
         query = cursor.fetchall()
         db.close()
         return query
