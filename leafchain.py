@@ -79,8 +79,11 @@ class Leafchain:
     def removeLeaf(self,pos):
         print("remove chain with head")
         print(self.leaf[pos][0].leaf_head)
+        #sqldb.setLogFork(self.leaf[pos][0].leaf_head,'0')
+        sqldb.setLogFork(self.leaf[pos][0].leaf_head, self.leaf[pos][0].leaf_arrivedTime, 0, 0, self.leaf[pos][0].leaf_index)
         sqldb.removeLeafChain(['',self.leaf[pos][0].leaf_head])
         del self.leaf[pos]
+        
     
     def IsLeaf(self, block_hash):
         for k, l in self.leaf.iteritems():
@@ -89,7 +92,8 @@ class Leafchain:
         return False
         
     def updateLeaf(self, block):
-        for k,l in self.leaf.iteritems():
+        for k,l in list(self.leaf.iteritems()):
+        
             if(self.leaf[k][0].leaf_round > block.round):
                 prev_block = sqldb.dbtoBlock(sqldb.blockHashQuery(['',self.leaf[k][0].leaf_prev_hash]))
                 sqldb.removeBlock(['',self.leaf[k][0].leaf_hash])
@@ -177,31 +181,50 @@ class Leafchain:
 
         elif(self.leaf[pos][0].leaf_prev_hash == block.prev_hash and not sync):
             print("POSSIVEL NOVO FORK")
+            
             if (block.round > self.roundMainChain):
                 print("Round Maior")
                 return self.leaf[pos][0]
             
-            new_leaf = Leaf(leaf_index=block.index,leaf_prev_hash="",
-            leaf_node=block.node,leaf_arrivedTime=block.arrive_time, leaf_bhash=block.hash,
-            leaf_prev_head=self.leaf[pos][0].leaf_head, leaf_head=block.hash, leaf_round=block.round,
-            leaf_prev_round=block.round,leaf_prev2_round=block.round, 
-            leaf_prev_arrivedTime=block.arrive_time,
-            leaf_prev2_arrivedTime = block.arrive_time)
+            elif(block.round < self.roundMainChain):
 
-            self.leaf[max(self.leaf)+1].append(new_leaf)
-
-            sqldb.writeChainLeaf(new_leaf,block)
-
-            if(block.round < self.roundMainChain):
                 print("Round Menor")
+                new_leaf = Leaf(leaf_index=block.index,leaf_prev_hash=block.prev_hash,
+                leaf_node=block.node,leaf_arrivedTime=block.arrive_time, leaf_bhash=block.hash,
+                leaf_prev_head=self.leaf[pos][0].leaf_prev_head, leaf_head=self.leaf[pos][0].leaf_head, leaf_round=block.round,
+                leaf_prev_round=self.leaf[pos][0].leaf_prev_round,leaf_prev2_round=self.leaf[pos][0].leaf_prev2_round, 
+                leaf_prev_arrivedTime=self.leaf[pos][0].leaf_prev_arrivedTime,
+                leaf_prev2_arrivedTime = self.leaf[pos][0].leaf_prev2_arrivedTime)
+
+                self.leaf[max(self.leaf)+1].append(new_leaf)
+
                 self.UpdateMainChain(block)
                 self.updateLeaf(block)
-
-            if(block.round == self.roundMainChain):
-                print("Round Igual")
-                sqldb.setForkFromBlock(self.leaf[pos][0].leaf_prev_hash)
+                sqldb.writeChainLeaf(new_leaf,block)
 
                 
+                #sqldb.setLogFork(self.leaf[pos][0].leaf_head,'1')
+
+            else:
+                print("Round Igual")
+                new_leaf = Leaf(leaf_index=block.index,leaf_prev_hash="",
+                leaf_node=block.node,leaf_arrivedTime=block.arrive_time, leaf_bhash=block.hash,
+                leaf_prev_head=self.leaf[pos][0].leaf_head, leaf_head=block.hash, leaf_round=block.round,
+                leaf_prev_round=block.round,leaf_prev2_round=block.round, 
+                leaf_prev_arrivedTime=block.arrive_time,
+                leaf_prev2_arrivedTime = block.arrive_time)
+
+                lenght = max(self.leaf) + 1
+                self.leaf[lenght].append(new_leaf)
+
+                sqldb.writeChainLeaf(new_leaf,block)
+
+                sqldb.setForkFromBlock(self.leaf[pos][0].leaf_prev_hash)
+
+                sqldb.setLogFork(self.leaf[lenght][0].leaf_head,self.leaf[lenght][0].leaf_arrivedTime,1,self.leaf[lenght][0].leaf_index,0,self.leaf[lenght][0].leaf_prev_head)
+
+           
+    
             #print("NOVA CHAIN")
             #print("hash na atual Leaf")
             #print(self.leaf[pos][0].head)
@@ -219,26 +242,42 @@ class Leafchain:
                 print("Round Maior")
                 return self.leaf[pos][0]
 
-            new_leaf = Leaf(leaf_index=block.index,leaf_prev_hash="",
-            leaf_node=block.node,leaf_arrivedTime=block.arrive_time, leaf_bhash=block.hash,
-            leaf_prev_head=self.leaf[pos][0].leaf_head, leaf_head=block.hash, leaf_round=block.round,
-            leaf_prev_round=block.round,leaf_prev2_round=block.round, 
-            leaf_prev_arrivedTime=block.arrive_time,
-            leaf_prev2_arrivedTime = block.arrive_time)
-
-            self.leaf[max(self.leaf)+1].append(new_leaf)
-            sqldb.writeChainLeaf(new_leaf,block)
-            
-            if(block.round < self.prevRoundMainChain):
+            elif(block.round < self.prevRoundMainChain):
                 print("Round Menor")
+
+                new_leaf = Leaf(leaf_index=block.index,leaf_prev_hash=block.prev_hash,
+                leaf_node=block.node,leaf_arrivedTime=block.arrive_time, leaf_bhash=block.hash,
+                leaf_prev_head=self.leaf[pos][0].leaf_prev_head, leaf_head=self.leaf[pos][0].leaf_head, leaf_round=block.round,
+                leaf_prev_round=self.leaf[pos][0].leaf_prev_round,leaf_prev2_round=block.round, 
+                leaf_prev_arrivedTime=self.leaf[pos][0].leaf_prev_arrivedTime,
+                leaf_prev2_arrivedTime = block.arrive_time)
+
+                self.leaf[max(self.leaf)+1].append(new_leaf)
+
                 self.UpdateMainChain(block)
                 self.updateLeaf(block)
 
-            if(block.round == self.prevRoundMainChain):
-                print("Round Igual")
-                sqldb.setForkFromBlock(self.leaf[pos][0].leaf_prev_hash)
+                sqldb.writeChainLeaf(new_leaf,block)
 
+                
+            else:
+                print("Round Igual")
+
+                new_leaf = Leaf(leaf_index=block.index,leaf_prev_hash="",
+                leaf_node=block.node,leaf_arrivedTime=block.arrive_time, leaf_bhash=block.hash,
+                leaf_prev_head=self.leaf[pos][0].leaf_head, leaf_head=block.hash, leaf_round=block.round,
+                leaf_prev_round=block.round,leaf_prev2_round=block.round, 
+                leaf_prev_arrivedTime=block.arrive_time,
+                leaf_prev2_arrivedTime = block.arrive_time)
+
+                lenght = max(self.leaf) + 1
+                self.leaf[lenght].append(new_leaf)
+                sqldb.writeChainLeaf(new_leaf,block)
+                
+                sqldb.setForkFromBlock(self.leaf[pos][0].leaf_prev_hash)
             
+                sqldb.setLogFork(self.leaf[lenght][0].leaf_head,self.leaf[lenght][0].leaf_arrivedTime,1,self.leaf[lenght][0].leaf_index,0,self.leaf[lenght][0].leaf_prev_head)
+
             return new_leaf
 
         elif(sync):

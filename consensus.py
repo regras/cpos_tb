@@ -46,7 +46,18 @@ class Consensus:
 
     def __init__(self):
         self.type = "PoS"
-        self.target = 2**(256 - parameter.difficulty) - 1
+        
+        i = 1
+        exp = 255
+        self.target = (2**(256) - 1)
+        while i <= parameter.difficulty:
+            self.target = self.target - (2**(exp))
+            i = i + 1
+            exp = exp - 1
+
+        print("consensus")
+        print('result of consensus target {}'.format(self.target))
+            
 
     def POS(self, lastBlock_hash, round, node, stake, skip = None):
         """ Find nonce for PoW returning block information """

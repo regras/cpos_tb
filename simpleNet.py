@@ -16,7 +16,7 @@ import sys, os
 # file directory path to mount private dirs
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-def testHostWithPrivateDirs(number=3):
+def testHostWithPrivateDirs(number=4):
     "Test bind mounts"
     topo = SingleSwitchTopo( number )
     privateDirs = privateDirs=[ (dir_path+'/blocks',
@@ -42,6 +42,8 @@ def startServer(net):
         #sleep(1)
         info('*** Blockchain node starting on %s\n' % h)
         h.cmd('python node.py -i', h.IP(), '-p 9000 --peers %s &' % peers)
+        #if(h.IP() == '10.0.0.1'):
+        h.cmd("./blockchain-cli startmining")
 
 def stopServer(hosts):
     """ Stop the node.py process through rpcclient """

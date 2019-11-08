@@ -71,6 +71,8 @@ class Node(object):
         self.e = threading.Event()
         self.f = threading.Event()
         self.start = threading.Event()
+        self.t = threading.Event()
+        self.t.clear()
 
         #flag sync
         self.threadSync = threading.Event()
@@ -94,6 +96,9 @@ class Node(object):
 
         #last block received
         self.lastBlock = None
+
+        #number of stable block
+        self.stableBlocks = 0
 
         #delays of the blocks transmition. each node has its own delay.
         #the delay uses a poison distribution with mean 8 seconds
@@ -198,6 +203,21 @@ class Node(object):
     #            reply = "Failed"
 
     #        self.repsendsocket.send_multipart([self.ipaddr, pickle.dumps(reply, 2)])
+
+    #function to verify if same block is stable
+
+    def stableBlock(self):
+        #expected round
+        while(True and not self.threadSync.is_set() and not self.t.is_set() and not self.e.is_set()):
+            startTime = int(time.mktime(datetime.datetime.now().timetuple()))
+            round = self.Round()
+            self.stableBlocks = sqldb.setStableBlocks(round)
+            stopTime = int(time.mktime(datetime.datetime.now().timetuple()))
+            if((stopTime - startTime) < parameter.timeout):
+                time.sleep(parameter.timeout - (stopTime - startTime))
+        
+
+
             
     def listen(self):
         """ Listen to block messages in a REQ/REP socket - We need to change from SUP to REQ/REP, because 
@@ -223,12 +243,24 @@ class Node(object):
                     ip = messages[1]
                     msg = messages[0]
                     #print(block)
+                    result = True
 
+                    if(not self.t.is_set()):
+                        self.t.is_set()
+                    else:
+                        while(self.t.is_set()):
+                            time.sleep(1)
+                        self.t.is_set()
+
+                    
                 else:
                     reply = "Failed"
+                    result = False
 
                 self.repsendsocket.send_multipart([self.ipaddr, pickle.dumps(reply, 2)])
 
+                if(not result):
+                    break
                 
                 if(ip != self.ipaddr):
                     self.f.clear()
@@ -266,8 +298,11 @@ class Node(object):
                                             new_leaf = self.leafchains.addBlockLeaf(k,b)
                                             sqldb.writeChainLeaf(new_leaf,b)
                                             self.lastValidateRound = b.round
+                                            sqldb.setLogListen(b, '1', new_leaf)
+                                            
                                     else:
                                         print("Block with invalid round or the challenge was not reached")
+                                        sqldb.setLogListen(b, '0')
                                     findPlace = True    
                                     break    
                             #possible new fork on the last block
@@ -281,8 +316,11 @@ class Node(object):
                                         if(self.synced):
                                             new_leaf = self.leafchains.addBlockLeaf(k,b)
                                             self.lastValidateRound = b.round
+                                            sqldb.setLogListen(b, '1', new_leaf)
+                                            
                                     else:
                                         print("Block with invalid round or the challenge was not reached.")
+                                        sqldb.setLogListen(b, '0')
                                     findPlace = True    
                                     break    
                             #possible new fork on the last last block            
@@ -295,18 +333,36 @@ class Node(object):
                                         if(self.synced):
                                             new_leaf = self.leafchains.addBlockLeaf(k,b)
                                             self.lastValidateRound = b.round
+                                            sqldb.setLogListen(b, '1', new_leaf)
+                                                                      
                                     else:
                                         print("Block with invalid round or the challenge was not reached.")
+                                        sqldb.setLogListen(b, '0')
                                     findPlace = True    
                                     break
 
                         if(not findPlace and not self.threadSync.is_set()):
                             if(b.round > self.lastValidateRound):
                                 print("call sync function")
+                                sqldb.setLogListen(b, '2')
                                 self.synced = False
                                 self.ipLastBlock = ip
                                 self.lastBlock = b
                                 self.threadSync.set()
+
+                        #indexMainChain = self.leafchains.getIndexMainChain()
+                        if(self.stableBlocks == 100):
+                            self.start.clear()
+                            self.f.clear()
+                            lock = True
+                            while(lock):
+                                if(not self.e.is_set()):
+                                    self.e.set()
+                                    self.rpcsocket.send_string('Stopping mining...')
+                                    lock = False
+                                    self.e.clear()
+
+                        self.t.clear()
                             #possible desync
                             #self.sync(None,ip)        
 
@@ -388,6 +444,8 @@ class Node(object):
             if r == 0:
                 r = 1
             round = l[0].leaf_round + r
+            print("Rodada Atual")
+            print(round)
             #round = self.Round()
             roundMain, indexMain, prevRoundIndex, prevIndexMain = self.leafchains.getMainChain()
             #print("Before tests")
@@ -398,15 +456,15 @@ class Node(object):
             #print("LEAF CHAIN")
             #print(l[0].leaf_index)
             
-            if((indexMain - l[0].leaf_index) == 1 and round > roundMain + 1):
+            if((indexMain - l[0].leaf_index) == 1 and round > roundMain + 2):
                 print("Remove Leaf 1")
                 #print(l[0].leaf_head)
                 self.leafchains.removeLeaf(k)
-            elif((indexMain - l[0].leaf_index) == 2 and round > prevRoundIndex + 1):
+            elif((indexMain - l[0].leaf_index) == 2 and round > prevRoundIndex + 2):
                 print("Remove Leaf 2")
                 #print(l[0].leaf_head)
                 self.leafchains.removeLeaf(k)
-            elif((indexMain - l[0].leaf_index) >= 3):
+            elif((indexMain - l[0].leaf_index) >= 4):
                 print("remove very old leaf")
                 #print(l[0].leaf_head)
                 #print("head")
@@ -437,7 +495,19 @@ class Node(object):
             returnTime = self.generateNewblock(startTime,node,self.stake,cons)
 
             #sleeping the time to reach a completely round
-            time.sleep(parameter.timeout - (returnTime - startTime))   
+            time.sleep(parameter.timeout - (returnTime - startTime))
+
+            #indexMainChain = self.leafchains.getIndexMainChain()
+            if(self.stableBlocks == 100):
+                self.start.clear()
+                self.f.clear()
+                lock = True
+                while(lock):
+                    if(not self.e.is_set()):
+                        self.e.set()
+                        self.rpcsocket.send_string('Stopping mining...')
+                        lock = False
+                        self.e.clear()   
             
             
 
@@ -493,7 +563,7 @@ class Node(object):
 
                 #print('new block' if new_hash else 'try again!')
 
-                if new_hash and not self.e.is_set() and self.synced:
+                if new_hash and not self.e.is_set() and self.synced and not self.t.is_set():
                     #print("RODADA MINERADA")
                     #print(round)
                     self.e.set() #semaforo
@@ -505,28 +575,30 @@ class Node(object):
                     new_leaf = self.leafchains.addBlockLeaf(k,new_block)
                     sqldb.writeChainLeaf(new_leaf,new_block)
 
+                    sqldb.setLogMine(new_leaf,new_block)
+
                     #insert delay for each known peer node
                     localTime = int(time.mktime(datetime.datetime.now().timetuple()))
                     for item in self.peers:
                         address = item['ipaddr']
                         delay = self.delay()
-                        if(delay > parameter.TOLERANCY):
-                            delay = parameter.TOLERANCY
-                        elif(delay == 1):
+                        #if(delay > parameter.TOLERANCY):
+                        #    delay = parameter.TOLERANCY
+                        if(delay == 1):
                             delay = delay + 1
                         elif(delay == 0):
                             delay = delay + 2
-
-                        print(delay)
-                        if (localTime + delay) not in self.msg_arrivals:
-                            self.msg_arrivals[localTime + delay] = []
+                        elif(delay > parameter.TOLERANCY):
+                            delay = parameter.TOLERANCY
+                        if (int(localTime + delay)) not in self.msg_arrivals:
+                            self.msg_arrivals[int(localTime + delay)] = []
                         
-                        self.msg_arrivals[localTime + delay].append((address, new_block))
+                        self.msg_arrivals[int(localTime + delay)].append((address, new_block))
                     
                     print("delays")
                     print(self.msg_arrivals)
 
-                    self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, pickle.dumps(new_block, 2)])
+                    #self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, pickle.dumps(new_block, 2)])
                     self.e.clear() #libera semaforo
 
                     #return block.Block(lastBlock.index + 1, lastBlock.hash, round, node, arrive_time, new_hash, tx)
@@ -542,8 +614,8 @@ class Node(object):
     def sendBlock(self):
         while True and not self.k.is_set():
             if (self.msg_arrivals and self.sendBlockThread.is_set()):
-                print("peers")
-                print(self.peers)
+                #print("peers")
+                #print(self.peers)
                 localTime = int(time.mktime(datetime.datetime.now().timetuple()))
                 print("Time Local sendBlock function")
                 print(localTime)
@@ -552,7 +624,7 @@ class Node(object):
                         print("address")
                         print(address)
                         self.sendreqsocket.connect("tcp://%s:%s" % (address, self.port+2))
-                        time.sleep(1)
+                        #time.sleep(1)
                         self.sendreqsocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, pickle.dumps(block, 2)])
                         m = self._poll(self.sendreqsocket)[0]
                         self.sendreqsocket.disconnect("tcp://%s:%s" % (address, self.port+2))
@@ -568,11 +640,12 @@ class Node(object):
             if not x:
                 self.removePeer(i)
 
-    def validateRoundChain(self,chain):
+    def validateRoundChainList(self,chain):
         i = 0
-        for itemChain in chain:
+        for k,l in list(chain.iteritems()):
+            itemChain = l[0]
             if(i == 0):
-                if(itemChain[1] < self.lastValidateRound - 1):
+                if(itemChain[1] < self.lastValidateRound - parameter.roundTolerancy):
                     return False
                 else:
                     lastblockRound = itemChain[1]
@@ -583,6 +656,24 @@ class Node(object):
                 lastblockRound = blockRound
             i = i + 1
         return True
+    
+    def validateRoundChain(self,chain):
+        i = 0
+        for itemChain in chain:
+           
+            if(i == 0):
+                if(itemChain[1] < self.lastValidateRound - parameter.roundTolerancy):
+                    return False
+                else:
+                    lastblockRound = itemChain[1]
+            else:
+                blockRound = itemChain[1]
+                if(blockRound <= lastblockRound):
+                    return False
+                lastblockRound = blockRound
+            i = i + 1
+        return True
+
 
     def sync(self):
         while True and not self.k.is_set():
@@ -608,11 +699,13 @@ class Node(object):
                         #searching the remain blocks of the know Chains 
                         chain = self.reqBlocksChain(l[0].leaf_hash, self.lastBlock.hash, self.ipLastBlock)
                         print("remain block chain")
-                        print(chain)
                         if(chain):
+                            chain = pickle.loads(chain)
+                            print(chain)
+                        #if(chain):
                             #check if round of the first chain block is bigger than the LastValidateRound
                             # if not we have a possible long range attack
-                            if(self.validateRoundChain(chain)):
+                            if(self.validateRoundChainList(chain)):
                                 self.insertChain(k, chain)
                             syncT = True
                             break
@@ -633,50 +726,82 @@ class Node(object):
                         heads = pickle.loads(heads)
                         for item in heads:
                             chain = self.reqAllChain(item, self.ipLastBlock)
+                            print("chain before removing common blocks")
+                            print(chain)
+                            print("validate last round")
+                            print(self.lastValidateRound)
                             if (chain):
+                                chain = self.removeCommonBlocks(chain)
+                                print("chain after removing common blocks")
+                                print(chain)
                                 if(self.validateRoundChain(chain)):
                                     self.insertAllChain(chain)
+                #if not syncT yet, The node will use the hardSync mode
+                #To do
+                
                 self.synced = True
                 self.threadSync.clear()
 
-    def insertAllChain(self, chain):
+    def removeCommonBlocks(self,chain):
         if(chain):
+            #first we need to remove all common blocks. It is necessary remove the blocks that the local node has.
             i = 0
-            for db in chain:
-                if(i == 0):
-                    forkPoint = sqldb.searchForkPoint(db)
-                    head = db[3]
-                    sqldb.setForkFromBlock(forkPoint[3])
+            db = chain[0]
+            hash = db[3]
+            isCommon = sqldb.hasDb(hash)
+            while(isCommon):
+                print(hash)
+                del chain[0]
 
-                b = sqldb.dbtoBlock(db)                
+                db = chain[0]
+                hash = db[3]
+                isCommon = sqldb.hasDb(hash)
+            return chain
 
+    def insertAllChain(self, chain):
+        i = 0
+        for db in chain:
+            if(i == 0):
+                forkPoint = sqldb.searchForkPoint(db)
+                head = db[3]
+            if(forkPoint):
+                sqldb.setForkFromBlock(forkPoint[3])
                 l = Leaf(leaf_node=db[4],leaf_index=db[0],leaf_head=head,leaf_prev_head=forkPoint[9],
                 leaf_bhash=db[3], leaf_round=db[1],leaf_arrivedTime=db[7],leaf_prev_hash=db[10],
                 leaf_prev_round=db[11],leaf_prev_arrivedTime=db[12],leaf_prev2_hash=db[13],
                 leaf_prev2_round=db[14],leaf_prev2_arrivedTime=db[15])
-                print("inserindo bloco cadeia desconhecida")
-                print(b.index)
-                sqldb.writeChainLeaf(l,b)
+            else:
+                l = Leaf(leaf_node=db[4],leaf_index=db[0],leaf_head=head,leaf_prev_head=db[9],
+                leaf_bhash=db[3], leaf_round=db[1],leaf_arrivedTime=db[7],leaf_prev_hash=db[10],
+                leaf_prev_round=db[11],leaf_prev_arrivedTime=db[12],leaf_prev2_hash=db[13],
+                leaf_prev2_round=db[14],leaf_prev2_arrivedTime=db[15])
 
-                if(i == (len(chain) - 1)):
-                    self.leafchains.appendLeaf(db)    
-                                    
-                i = i + 1
+            b = sqldb.dbtoBlock(db) 
+            print("inserindo bloco cadeia desconhecida")
+            print(b.index)
+            sqldb.writeChainLeaf(l,b)
+
+            if(i == (len(chain) - 1)):
+                self.leafchains.appendLeaf(db)    
+
+            i = i + 1
 
 
     def insertChain(self,k,chain):
         print("remain chain index")
+
         leafs = self.leafchains.getLeafs()
         print(leafs[k][0].leaf_index)
         if(chain):
             i = 0
-            for itemChain in chain:
+            for j, l in list(chain.iteritems()):
+                itemChain = l[0]
                 b = sqldb.dbtoBlock(itemChain)
                 new_leaf = self.leafchains.addBlockLeaf(k,b,True)
                 if(new_leaf):
                     sqldb.writeChainLeaf(new_leaf,b)
                 if(i == len(chain) - 1):
-                    if(self.getIndexMainChain() < b.index):
+                    if(self.leafchains.getIndexMainChain() < b.index):
                         self.leafchains.UpdateMainChain(b)
                 
 
@@ -1204,6 +1329,11 @@ def main():
     sendBlock_thread.start()
     threads.append(sendBlock_thread)
 
+    #thread to count stable blocks
+    stableBlock_thread = threading.Thread(name='stableBlock', target=n.stableBlock)
+    stableBlock_thread.start()
+    threads.append(stableBlock_thread)
+
     # Check peers most recent block
     #n.sync()
 
@@ -1212,7 +1342,7 @@ def main():
          kwargs={'cons': cons})
     threads.append(n.miner_thread)
 
-    print(threads)
+    #print(threads)
 
     if args.miner:
         n.miner_thread.start()
