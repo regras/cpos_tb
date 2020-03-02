@@ -18,6 +18,10 @@ MSG_LEAVES = 'leaves'
 MSG_BLOCKCHAIN = 'blockchain'
 MSG_UNKNOWBLOCKCHAIN = 'unknowblocks'
 MSG_ALLCHAIN = 'allchain'
+MSG_REQBLOCK = 'reqblock'
+MSG_REQBLOCKS = 'reqblocks'
+
+
 
 def handleMessages(bc, messages):
     cmd = messages[0] if isinstance(messages, list) else str(messages)
@@ -34,10 +38,12 @@ def handleMessages(bc, messages):
         return sqldb.dbCheckLeaf(bc)
     elif cmd == MSG_BLOCKCHAIN:
         return sqldb.dbCheckChain([messages[1], messages[2]])
-    elif cmd == MSG_UNKNOWBLOCKCHAIN:
-        return sqldb.dbCheckUnknowChain([messages[1]])
+    elif cmd == MSG_REQBLOCKS:
+        return sqldb.dbReqBlocks([messages[1], messages[2], messages[3]])
     elif cmd == MSG_ALLCHAIN:
         return sqldb.dbGetAllChain([messages[1]])
+    elif cmd == MSG_REQBLOCK:
+        return sqldb.dbReqBlock([messages[1]])
     else:
         return None
 
@@ -58,7 +64,9 @@ class Consensus:
         print("consensus")
         print('result of consensus target {}'.format(self.target))
             
-
+    def getTarget(self):
+        return self.target
+        
     def POS(self, lastBlock_hash, round, node, stake, skip = None):
         """ Find nonce for PoW returning block information """
         # chr simplifies merkle root and add randomness
