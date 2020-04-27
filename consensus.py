@@ -14,6 +14,13 @@ MSG_BLOCK = 'block'
 MSG_BLOCKS = 'getblocks'
 MSG_HELLO = 'hello'
 MSG_PEERS = 'peers'
+MSG_LEAVES = 'leaves'
+MSG_BLOCKCHAIN = 'blockchain'
+MSG_UNKNOWBLOCKCHAIN = 'unknowblocks'
+MSG_ALLCHAIN = 'allchain'
+MSG_REQBLOCK = 'reqblock'
+MSG_REQBLOCKS = 'reqblocks'
+
 
 
 def handleMessages(bc, messages):
@@ -27,6 +34,16 @@ def handleMessages(bc, messages):
         return sqldb.blocksQuery(messages)
     elif cmd == MSG_BLOCK:
         return sqldb.blockQuery(messages)
+    elif cmd == MSG_LEAVES:
+        return sqldb.dbCheckLeaf(bc)
+    elif cmd == MSG_BLOCKCHAIN:
+        return sqldb.dbCheckChain([messages[1], messages[2]])
+    elif cmd == MSG_REQBLOCKS:
+        return sqldb.dbReqBlocks([messages[1], messages[2], messages[3]])
+    elif cmd == MSG_ALLCHAIN:
+        return sqldb.dbGetAllChain([messages[1]])
+    elif cmd == MSG_REQBLOCK:
+        return sqldb.dbReqBlock([messages[1]])
     else:
         return None
 
@@ -35,14 +52,27 @@ class Consensus:
 
     def __init__(self):
         self.type = "PoS"
-        self.target = 2**(256 - parameter.difficulty) - 1
+        
+        i = 1
+        exp = 255
+        self.target = (2**(256) - 1)
+        while i <= parameter.difficulty:
+            self.target = self.target - (2**(exp))
+            i = i + 1
+            exp = exp - 1
 
-    def POS(self, lastBlock, round, node, stake, skip = None):
+        print("consensus")
+        print('result of consensus target {}'.format(self.target))
+            
+    def getTarget(self):
+        return self.target
+        
+    def POS(self, lastBlock_hash, round, node, stake, skip = None):
         """ Find nonce for PoW returning block information """
         # chr simplifies merkle root and add randomness
         tx = chr(random.randint(1,100))
 
-        c_header = str(lastBlock.hash) + str(round) + str(node) # candidate header
+        c_header = str(lastBlock_hash) + str(round) + str(node) # candidate header
 
         hash_result = hashlib.sha256(c_header).hexdigest()
         #print(hash_result)

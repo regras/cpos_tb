@@ -8,6 +8,8 @@ from functools import partial
 from time import sleep
 from random import shuffle
 import sys, os
+import time
+from random import uniform
 
 # Sample usage
 # sudo python simpleNet.py <n>
@@ -16,7 +18,7 @@ import sys, os
 # file directory path to mount private dirs
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-def testHostWithPrivateDirs(number=3):
+def testHostWithPrivateDirs(number=54):
     "Test bind mounts"
     topo = SingleSwitchTopo( number )
     privateDirs = privateDirs=[ (dir_path+'/blocks',
@@ -26,7 +28,7 @@ def testHostWithPrivateDirs(number=3):
                     privateDirs=privateDirs )
     net = Mininet( topo=topo, host=host )
     net.start()
-    #startServer(net)
+    startServer(net)
     CLI( net )
     stopServer(net.hosts)
     net.stop()
@@ -41,7 +43,18 @@ def startServer(net):
         peers = ' '.join(ips)
         #sleep(1)
         info('*** Blockchain node starting on %s\n' % h)
-        h.cmd('python node.py -i', h.IP(), '-p 9000 --peers %s &' % peers)
+        #h.cmd('nohup sudo python node.py -i', h.IP(), '-p 9000 --peers %s' % peers)
+        h.cmd('nohup python node.py -i', h.IP(), '-p 9000 --peers %s &' % peers)
+        #if(h.IP() == '10.0.0.1'):
+        #i = uniform(0,1)
+        #time.sleep(i)
+
+    #i = uniform(0,1) 
+    #for h in net.hosts:
+    #    h.cmd("nohup sudo ./startunitest-cli . &")
+        #time.sleep(i)
+        #i = uniform(0,1)
+        
 
 def stopServer(hosts):
     """ Stop the node.py process through rpcclient """
