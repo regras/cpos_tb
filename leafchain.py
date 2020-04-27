@@ -82,7 +82,7 @@ class Leafchain:
         l = db if isinstance(db, Leaf) else Leaf(leaf_node=db[4],leaf_index=db[0],leaf_head=db[8],leaf_prev_head=db[9],
         leaf_bhash=db[3], leaf_round=db[1],leaf_arrivedTime=db[7],leaf_prev_hash=db[10],leaf_prev_round=db[11],
         leaf_prev_arrivedTime=db[12],leaf_prev2_hash=db[13],leaf_prev2_round=db[14],
-        leaf_prev2_arrivedTime=db[15],lastId=db[0])
+        leaf_prev2_arrivedTime=db[15],lastId=db[0],subuser=db[18])
         self.leaf[max(self.leaf)+1].append(l)
         if(l.leaf_index > self.indexMainChain):
             block = sqldb.dbtoBlock(sqldb.blockHashQuery(l.leaf_hash))

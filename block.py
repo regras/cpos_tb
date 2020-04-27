@@ -5,7 +5,7 @@ import json
 
 
 class Block:
-    def __init__(self, index, prev_hash, round, node, arrive_time=0, b_hash=None, tx=''):
+    def __init__(self, index, prev_hash, round, node, arrive_time=0, b_hash=None, tx='',subuser=0):
         self.index = index
         self.prev_hash = prev_hash
         self.tx = tx
@@ -13,6 +13,7 @@ class Block:
         self.node = node
         self.mroot = self.calcMerkleRoot()
         self.arrive_time = arrive_time
+        self.subuser = subuser
         if b_hash:
             self.hash = b_hash
         else: # mostly genesis

@@ -57,6 +57,7 @@ def dbConnect():
         leaf_prev2_arrive_time text,
         fork integer,
         stable integer,
+        subuser integer,
         PRIMARY KEY (id,leaf_head))""")
 
     #cursor.execute("""CREATE TABLE IF NOT EXISTS log_mine (
