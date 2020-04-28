@@ -25,6 +25,8 @@ class Leaf:
         self.leaf_prevLastTimeTried = leaf_prev_arrivedTime
         self.leaf_prev2LastTimeTried = leaf_prev2_arrivedTime
         self.leaf_lastId = leaf_index
+        self.leaf_subuser = subuser
+         
         if leaf_bhash:
             self.leaf_hash = leaf_bhash
         else: # mostly genesis leaf

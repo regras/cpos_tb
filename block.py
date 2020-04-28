@@ -5,7 +5,7 @@ import json
 
 
 class Block:
-    def __init__(self, index, prev_hash, round, node, arrive_time=0, b_hash=None, tx='',subuser=0):
+    def __init__(self, index, prev_hash, round, node, arrive_time=0, b_hash=None, tx='',subuser=0,lastTimeTried=0):
         self.index = index
         self.prev_hash = prev_hash
         self.tx = tx
@@ -14,6 +14,10 @@ class Block:
         self.mroot = self.calcMerkleRoot()
         self.arrive_time = arrive_time
         self.subuser = subuser
+        if(lastTimeTried == 0):
+            self.lastTimeTried = arrive_time
+        else:
+            self.lastTimeTried = lastTimeTried
         if b_hash:
             self.hash = b_hash
         else: # mostly genesis
@@ -24,7 +28,7 @@ class Block:
 
     def calcBlockhash(self):
         # Check concatenate order
-        h = str(self.prev_hash) + str(self.round) + str(self.node)
+        h = str(self.prev_hash) + str(self.round) + str(self.node) + str(self.subuser)
         return hashlib.sha256(h).hexdigest()
 
     def rawblockInfo(self):
