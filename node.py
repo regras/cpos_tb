@@ -254,25 +254,25 @@ class Node(object):
                 stake = message[3]
                 nowTime = message[4]
                 subuser = 0
-                print("block index:")
-                print(block.index)
-                print("block hash")
-                print(block.hash)
-                print("NowTime on Commit Block")
-                print(nowTime)
+                #print("block index:")
+                #print(block.index)
+                #print("block hash")
+                #print(block.hash)
+                #print("NowTime on Commit Block")
+                #print(nowTime)
                 r = int(math.floor((nowTime - int(block.arrive_time)) / parameter.timeout))
                 #l[0].leaf_lastTimeTried = nowTime
                 round = block.round + r
                 #round = self.Round()
-                print("Expected round mine")
-                print(round)
+                #print("Expected round mine")
+                #print(round)
                 #roundMain, indexMain, prevRoundIndex, prevIndexMain = self.leafchains.getMainChain()
                 #if((leaf_index == prevIndexMain and round > roundMain and prevIndexMain != 0) or
                 #(leaf_index == prevIndexMain - 1 and round > prevRoundIndex and prevIndexMain != 0)
                 #or (leaf_index < (prevIndexMain - 1))):
                 status,roundBlock = sqldb.verifyRoundBlock(block.index + 1, round)
-                print("status")
-                print(status)
+                #print("status")
+                #print(status)
                 if(not status):
                     new_hash = None
                 else:
@@ -286,16 +286,11 @@ class Node(object):
                     self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, pickle.dumps(new_block, 2)])
                     status = chaincontrol.addBlockLeaf(new_block) 
                     if(status):
-                        print("new block created")
-                        print("hash")
-                        print(new_block.hash)
-                        print("prev_hash")
-                        print(new_block.prev_hash)
                         sqldb.setLogBlock(new_block, 1)
                         #self.semaphore.release()
                         return True,arrive_time
-                    else:
-                        print("block is not priority. Not inserted")
+                    #else:
+                        #print("block is not priority. Not inserted")
 
             triedTime = int(time.mktime(datetime.datetime.now().timetuple()))
             #self.semaphore.release()
@@ -502,7 +497,9 @@ class Node(object):
                                     if(status):
                                         sqldb.setLogBlock(b, 1)
                             else:
-                                print("not sync")
+                                print("NOT SYNC")
+                                print(b.round)
+                                
                              
                 self.f.set()
                 self.e.clear()            
@@ -597,10 +594,20 @@ class Node(object):
                     blockPrev = self.commitBlock(message=[block.prev_hash],t=14)
                     self.semaphore.release()                        
                     if(blockPrev):
+                        print("blockPrev lastTimeTried:")
+                        print(blockPrev.lastTimeTried)
+                        print("nowTime:")
+                        print(nowTime)
+                        print("blockPrev index:")
+                        print(blockPrev.index)
                         if((nowTime - int(blockPrev.lastTimeTried)) >= parameter.timeout):
                             r = int(math.floor((nowTime - int(blockPrev.arrive_time)) / parameter.timeout))
                             round = blockPrev.round + r
+                            print("blockPrev lastTimeTried entrou:")
+                            print(blockPrev.lastTimeTried)
                             status, blockRound = self.commitBlock(message=[blockPrev.index,round],t=8)
+                            print("status:")
+                            print(status)
                             self.semaphore.release()
                             if(status):
                                 print("Triying to use the commitBlock from Mine Block - prev block")
@@ -608,8 +615,8 @@ class Node(object):
                                 replyMine, triedTime = self.commitBlock(message=[blockPrev,cons,self.node,self.stake,nowTime],t=0)
                                 self.semaphore.release()
                                 chains = chains + 1
-                                if(replyMine):
-                                    print("mine new prev block")
+                                #if(replyMine):
+                                #    print("mine new prev block")
                                 sqldb.updateBlock(triedTime,blockPrev.hash)
                         
                 if(not status):
@@ -619,8 +626,8 @@ class Node(object):
                         replyMine, triedTime = self.commitBlock(message=[block,cons,self.node,self.stake,nowTime], t=0)
                         self.semaphore.release()
                         chains = chains + 1
-                        if(replyMine):
-                            print("mine new block")
+                        #if(replyMine):
+                        #    print("mine new block")
                         sqldb.updateBlock(triedTime,block.hash)
             if(chains >= len(blocks)):
                 trying = False
@@ -1221,9 +1228,9 @@ def main():
     #os.system('sudo python uni_test.py -n %s' % text)
 
     #call timetocreateblocks function to automatic simulation
-    time.sleep(1)
-    uniTest_thread = threading.Thread(name='uniTest', target=uni_test.timetocreateblocks, kwargs={'node':n})
-    uniTest_thread.start()
+    #time.sleep(1)
+    #uniTest_thread = threading.Thread(name='uniTest', target=uni_test.timetocreateblocks, kwargs={'node':n})
+    #uniTest_thread.start()
 
     try:
         while True:

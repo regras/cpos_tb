@@ -29,14 +29,15 @@ def updateChainView(idChain, block):
         sqldb.writeChainLeaf(idChain, block)
         return True
     elif(not sqldb.blockIsMaxIndex(block.index)):
-        if(sqldb.blockIsPriority(block.index,block.hash)):
-            print("ISLEAF")
-            print("NOT MAXINDEX")
-            sqldb.removeAllBlocksHigh(block.index, block.hash)
-            sqldb.writeChainLeaf(idChain, block)
-            return True
-        else:
-            return False
+        if(sqldb.verifyRoundBlock(block.index,block.round)):
+            if(sqldb.blockIsPriority(block.index,block.hash)):
+                print("ISLEAF")
+                print("NOT MAXINDEX")
+                sqldb.removeAllBlocksHigh(block.index, block.hash)
+                sqldb.writeChainLeaf(idChain, block)
+                return True
+            else:
+                return False
     #elif(not sqldb.blockIsLeaf(block.index, block.prev_hash)):
     #    if(sqldb.blockIsPriority(block.index,block.hash)):
     #        print("NOT LEAF")
