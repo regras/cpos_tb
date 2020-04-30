@@ -7,7 +7,7 @@ GEN_ARRIVE_TIME = 1573486728
 THRESHOLD = 2
 
 # Time in seconds
-timeout = 20
+timeout = 10
 # difficulty
 difficulty = 6
 

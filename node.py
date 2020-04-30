@@ -24,7 +24,6 @@ import calculation
 import parameter
 import os
 import uni_test
-import clientThread
 import socket
 
 #TODO blockchain class and database decision (move to only db solution?)
@@ -648,21 +647,21 @@ class Node(object):
                         print("Remove Fork")
                         #print(l[0].leaf_head)
                         self.leafchains.removeLeaf(k)
-                    #elif((indexMain - l[0].leaf_index) == 3 and round > roundMain): 
-                    #    print("Remove Fork")
-                        #print(l[0].leaf_head)
-                        #print("head")
-                        #print(l[0].leaf_head)
-                        #print("VALOR INDICE K")
-                        #print(k)
-                    #    self.leafchains.removeLeaf(k)
+                    elif((indexMain - l[0].leaf_index) == 3 and round > roundMain): 
+                        print("Remove Fork")
+                        print(l[0].leaf_head)
+                        print("head")
+                        print(l[0].leaf_head)
+                        print("VALOR INDICE K")
+                        print(k)
+                        self.leafchains.removeLeaf(k)
                     elif((indexMain - l[0].leaf_index) >= 3): 
                         print("Remove Fork")
-                        #print(l[0].leaf_head)
-                        #print("head")
-                        #print(l[0].leaf_head)
-                        #print("VALOR INDICE K")
-                        #print(k)
+                        print(l[0].leaf_head)
+                        print("head")
+                        print(l[0].leaf_head)
+                        print("VALOR INDICE K")
+                        print(k)
                         self.leafchains.removeLeaf(k)
                 #self.e.clear()
                 self.leafchains.releaseSemaphore()
