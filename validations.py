@@ -2,7 +2,8 @@ import consensus
 import sqldb
 import math
 import parameter
-
+import time
+import datetime
 def validateChallenge(block, stake):
     target = consensus.Consensus().target
     if int(block.hash,16) < target:
@@ -79,15 +80,16 @@ def validateExpectedRound(block, lastBlock):
     else:
         return False
         
-def validateExpectedLocalRound(block, leaf_round, leaf_arrive_time):
-    calculated_rounds = int(math.floor((int(block.arrive_time) - int(leaf_arrive_time))/parameter.timeout))
+def validateExpectedLocalRound(block):
+    nowTime = time.mktime(datetime.datetime.now().timetuple())
+    expected_round = int(round((float(nowTime) - float(parameter.GEN_ARRIVE_TIME))/parameter.timeout,0))
     #if(calculated_rounds == 0 and ((int(block.arrive_time) - int(leaf_arrive_time)) < parameter.timeout)):
     #    calculated_rounds = 1
 
     #elif((int(block.arrive_time) - int(leaf_arrive_time)) > (calculated_rounds * parameter.timeout)):
     #    calculated_rounds = calculated_rounds + 1    
 
-    expected_round = leaf_round + calculated_rounds
+    #expected_round = leaf_round + calculated_rounds
     print("BLOCK ROUND", block.round)
     print("EXPECTED_ROUND", expected_round)
     #print("Expected Round")

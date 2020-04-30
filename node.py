@@ -231,8 +231,9 @@ class Node(object):
         #startTime = int(time.mktime(datetime.datetime.now().timetuple()))
         if(not self.threadSync.is_set() and not self.e.is_set()):
             self.e.set()
-            round = self.Round()
-            self.stable = sqldb.setStableBlocks(round)
+            nowTime = time.mktime(datetime.datetime.now().timetuple())
+            currentRound = int(round((float(nowTime) - float(parameter.GEN_ARRIVE_TIME))/parameter.timeout,0))
+            self.stable = sqldb.setStableBlocks(currentRound)
             self.e.clear()
 
         #stopTime = int(time.mktime(datetime.datetime.now().timetuple()))    
@@ -252,27 +253,9 @@ class Node(object):
                 cons = message[1]
                 node = message[2]
                 stake = message[3]
-                nowTime = message[4]
+                round = message[4]
                 subuser = 0
-                #print("block index:")
-                #print(block.index)
-                #print("block hash")
-                #print(block.hash)
-                #print("NowTime on Commit Block")
-                #print(nowTime)
-                r = int(math.floor((nowTime - int(block.arrive_time)) / parameter.timeout))
-                #l[0].leaf_lastTimeTried = nowTime
-                round = block.round + r
-                #round = self.Round()
-                #print("Expected round mine")
-                #print(round)
-                #roundMain, indexMain, prevRoundIndex, prevIndexMain = self.leafchains.getMainChain()
-                #if((leaf_index == prevIndexMain and round > roundMain and prevIndexMain != 0) or
-                #(leaf_index == prevIndexMain - 1 and round > prevRoundIndex and prevIndexMain != 0)
-                #or (leaf_index < (prevIndexMain - 1))):
                 status,roundBlock = sqldb.verifyRoundBlock(block.index + 1, round)
-                #print("status")
-                #print(status)
                 if(not status):
                     new_hash = None
                 else:
@@ -490,7 +473,7 @@ class Node(object):
                             prevBlock = self.commitBlock([b.prev_hash],t=14)
                             self.semaphore.release()
                             if(prevBlock):
-                                if(validations.validateExpectedLocalRound(b,prevBlock.round,prevBlock.arrive_time) and validations.validateChallenge(b,self.stake)
+                                if(validations.validateExpectedLocalRound(b) and validations.validateChallenge(b,self.stake)
                                 and b.round >= prevBlock.round):
                                     status = self.commitBlock(message = [b],t = 2)
                                     self.semaphore.release()
@@ -543,7 +526,9 @@ class Node(object):
     def mine(self, cons):
         """ Create and send block in PUB socket based on consensus """
         name = threading.current_thread().getName()
-
+        prevTime = float(parameter.GEN_ARRIVE_TIME)
+        #prevTime = int(parameter.GEN_ARRIVE_TIME)
+        prevRound = 0
         while True and not self.k.is_set():
             # move e flag inside generate?
             self.start.wait()
@@ -552,90 +537,41 @@ class Node(object):
             if(self.synced):
                 #commited = self.commitBlock(t=1)
                 #self.semaphore.release()
-
                 self.commitBlock(t=9)
                 self.semaphore.release()
-                
-                #startNewRound
-                startTime = int(time.mktime(datetime.datetime.now().timetuple()))
-                print("Call's time of the Generate Block Function")
-                print(startTime)
 
+                nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
                 self.stake = self.balance
-            
-                returnTime = self.generateNewblock(startTime,self.node,self.stake,cons)
-
-                print("sleeping")
-                print(parameter.timeout - (returnTime - startTime))
-
-                if(parameter.timeout > (returnTime - startTime)):
-                    time.sleep(parameter.timeout - (returnTime - startTime))
+                #startNewRound
+                if((nowTime - prevTime) >= parameter.timeout):
+                    currentRound = int(round(((nowTime - prevTime)/parameter.timeout),0)) + prevRound
+                    prevTime = nowTime
+                    prevRound = currentRound 
+                    self.generateNewblock(currentRound,self.node,self.stake,cons)
                 else:
-                    time.sleep(parameter.timeout)
+                    time.sleep(0.1)
             else:
                 time.sleep(0.1)
-                        
 
-    def generateNewblock(self, startTime, node, stake, cons):
+    def generateNewblock(self, round, node, stake, cons):
         """ Loop for PoS in case of solve challenge, returning new Block object """
         #r = int(math.floor((int(time.mktime(datetime.datetime.now().timetuple())) - int(lastBlock.arrive_time)) / parameter.timeout))
         #startTime = int(time.mktime(datetime.datetime.now().timetuple()))
-        trying = True
-        chains = 0
         blocks = self.commitBlock(t=13)
         self.semaphore.release()
-        while (((int(time.mktime(datetime.datetime.now().timetuple()))- startTime) < parameter.timeout) and trying):
-            for i in blocks:
-                block = blocks[i][0]
-                print(block)
-                status = False
-                nowTime = int(time.mktime(datetime.datetime.now().timetuple()))
-                if(block.node != self.node):
-                    blockPrev = self.commitBlock(message=[block.prev_hash],t=14)
-                    self.semaphore.release()                        
-                    if(blockPrev):
-                        print("blockPrev lastTimeTried:")
-                        print(blockPrev.lastTimeTried)
-                        print("nowTime:")
-                        print(nowTime)
-                        print("blockPrev index:")
-                        print(blockPrev.index)
-                        if((nowTime - int(blockPrev.lastTimeTried)) >= parameter.timeout):
-                            r = int(math.floor((nowTime - int(blockPrev.arrive_time)) / parameter.timeout))
-                            round = blockPrev.round + r
-                            print("blockPrev lastTimeTried entrou:")
-                            print(blockPrev.lastTimeTried)
-                            status, blockRound = self.commitBlock(message=[blockPrev.index,round],t=8)
-                            print("status:")
-                            print(status)
-                            self.semaphore.release()
-                            if(status):
-                                print("Triying to use the commitBlock from Mine Block - prev block")
-                                print(nowTime)
-                                replyMine, triedTime = self.commitBlock(message=[blockPrev,cons,self.node,self.stake,nowTime],t=0)
-                                self.semaphore.release()
-                                chains = chains + 1
-                                #if(replyMine):
-                                #    print("mine new prev block")
-                                sqldb.updateBlock(triedTime,blockPrev.hash)
-                        
-                if(not status):
-                    if(((nowTime - int(block.lastTimeTried)) >= parameter.timeout)):
-                        print("Triying to use the commitBlock from Mine Block - last block")
-                        print(nowTime)
-                        replyMine, triedTime = self.commitBlock(message=[block,cons,self.node,self.stake,nowTime], t=0)
-                        self.semaphore.release()
-                        chains = chains + 1
-                        #if(replyMine):
-                        #    print("mine new block")
-                        sqldb.updateBlock(triedTime,block.hash)
-            if(chains >= len(blocks)):
-                trying = False
-            else:
-                time.sleep(1)
+        for i in blocks:
+            block = blocks[i][0]
+            while(block.round >= round):
+                block = sqldb.getBlock(block.prev_hash)
+            if(block):
+                print("trying block:")
+                print(block.index + 1)
+                print("trying round:")
+                print(round)
+                replyMine, triedTime = self.commitBlock(message=[block,cons,self.node,self.stake,round],t=0)
+                self.semaphore.release()
         self.e.clear() 
-        return int(time.mktime(datetime.datetime.now().timetuple()))
-
+        
     #def sendBlock(self):
     #    while True and not self.k.is_set():
     #        if (self.msg_arrivals and self.sendBlockThread.is_set()):
@@ -1228,9 +1164,9 @@ def main():
     #os.system('sudo python uni_test.py -n %s' % text)
 
     #call timetocreateblocks function to automatic simulation
-    #time.sleep(1)
-    #uniTest_thread = threading.Thread(name='uniTest', target=uni_test.timetocreateblocks, kwargs={'node':n})
-    #uniTest_thread.start()
+    time.sleep(1)
+    uniTest_thread = threading.Thread(name='uniTest', target=uni_test.timetocreateblocks, kwargs={'node':n})
+    uniTest_thread.start()
 
     try:
         while True:

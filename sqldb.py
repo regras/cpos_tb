@@ -575,7 +575,7 @@ def dbInsertFirstBlock():
     cursor.execute('select * from localChains')
     leafs_db = cursor.fetchall()
     if not leafs_db:
-        b = block.Block(index=0,prev_hash="",round=1,node="",b_hash="",arrive_time=parameter.GEN_ARRIVE_TIME)
+        b = block.Block(index=0,prev_hash="",round=0,node="",b_hash="",arrive_time=parameter.GEN_ARRIVE_TIME)
         createNewChain(b)
     db.commit()
     db.close()
