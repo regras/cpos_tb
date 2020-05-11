@@ -4,10 +4,41 @@ import math
 import parameter
 import time
 import datetime
+from decimal import Decimal
+import chaincontrol
 def validateChallenge(block, stake):
     target = consensus.Consensus().target
     if int(block.hash,16) < target:
         return True
+    return False
+
+def sortition(userHash,stake,cons):
+    p = cons.getTarget() / float(2**256)
+    print("SUCCESS PROB: ", p)
+    print("STAKE: ", stake)
+    np = 1 - p
+    q = int(userHash,16) / float(2**256)
+    print("Q: ", q)
+    j = 0
+    limitInf = chaincontrol.Combinations(stake,0) * ((np)**(stake))
+    limitSup = limitInf + chaincontrol.Combinations(stake,1) * p * (np**(stake - 1))
+    print("LIMIT INF: ", limitInf)
+    print("LIMIT SUP: ", limitSup)
+    while(q >= limitInf and q > limitSup and j <= stake):
+        j = j + 1
+        limitInf = limitSup
+        limitSup = limitSup + chaincontrol.Combinations(stake,j+1) * (p**(j+1)) * (np**(stake - (j+1)))
+    print("RAFFLED NUMBER: ", j)
+    return j
+
+def validateProofHash(block,user_stake,cons):
+    userHash, blockHash = cons.POS(lastBlock_hash=block.prev_hash,round=block.round,node=block.node,tx=block.tx)
+    j = sortition(userHash,user_stake,cons)
+    if(j >= block.subuser):
+        proof_hash,subuser = cons.calcProofHash(userHash,blockHash,j)
+        if(int(proof_hash,16) == int(block.proof_hash,16)):
+            print("VERIFIED")
+            return True
     return False
 
 def validateRound(block, bc):

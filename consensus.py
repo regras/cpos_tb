@@ -53,37 +53,52 @@ class Consensus:
     def __init__(self):
         self.type = "PoS"
         
-        i = 1
-        exp = 255
-        self.target = (2**(256) - 1)
-        while i <= parameter.difficulty:
-            self.target = self.target - (2**(exp))
-            i = i + 1
-            exp = exp - 1
-
+        #i = 1
+        #exp = 255
+        self.target = (2**(256 - parameter.difficulty))
+        #while i <= parameter.difficulty:
+        #    self.target = self.target - (2**(exp))
+        #    i = i + 1
+        #    exp = exp - 1
         print("consensus")
         print('result of consensus target {}'.format(self.target))
             
     def getTarget(self):
         return self.target
         
-    def POS(self, lastBlock_hash, round, node, stake, skip = None, subuser=0):
+    def POS(self, lastBlock_hash, round, node, skip = None, tx=0):
         """ Find nonce for PoW returning block information """
         # chr simplifies merkle root and add randomness
-        tx = chr(random.randint(1,100))
+        #tx = chr(random.randint(1,100))
 
-        c_header = str(lastBlock_hash) + str(round) + str(node) + str(subuser) # candidate header
+        user_header = str(round) + str(node) # user header
+        user_hash = hashlib.sha256(user_header).hexdigest()
 
-        hash_result = hashlib.sha256(c_header).hexdigest()
+        block_header = str(lastBlock_hash) + str(tx)
+        block_hash = hashlib.sha256(block_header).hexdigest()
+
+        return user_hash, block_hash
+        
+    def calcProofHash(self,userHash,blockHash,subUser):
+        j = 1
+        header = str(userHash) + str(blockHash) + str(j)
+        proofHash = hashlib.sha256(header).hexdigest()
+        while(j < subUser):
+            j = j + 1
+            header = str(userHash) + str(blockHash) + str(j)
+            newHash = hashlib.sha256(header).hexdigest()
+            if(int(proofHash,16) > int(newHash,16)):
+                proofHash = newHash
+        return proofHash, j
         #print(hash_result)
         #print(format(int(hash_result, 16),"0256b"))
         #print(format(self.target,"0256b"))
 
-        if int(hash_result,16) < self.target:
+        #if int(hash_result,16) < self.target:
             # print("OK")
-            return hash_result, tx
+        #    return hash_result, tx
 
-        return False, tx
+        #return False, tx
 
     #def generateNewblock(self, lastBlock, node, stake, skip=False):
     #    """ Loop for PoS in case of solve challenge, returning new Block object """

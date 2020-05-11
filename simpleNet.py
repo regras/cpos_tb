@@ -18,7 +18,7 @@ from random import uniform
 # file directory path to mount private dirs
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-def testHostWithPrivateDirs(number=16):
+def testHostWithPrivateDirs(number=1):
     "Test bind mounts"
     topo = SingleSwitchTopo( number )
     privateDirs = privateDirs=[ (dir_path+'/blocks',

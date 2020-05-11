@@ -1,3 +1,4 @@
+import math
 # -*- coding: utf-8 -*-
 
 # Initial Arrive Time
@@ -9,7 +10,6 @@ THRESHOLD = 2
 # Time in seconds
 timeout = 10
 # difficulty
-difficulty = 4
 
 ### Test Variables ###
 num_block_created = 0
@@ -26,3 +26,9 @@ roundTolerancy = 2
 TEST = 100
 
 NODES = 2
+
+W = 1000 #all network coins
+
+tal = 1 #proposer parameter
+
+difficulty = float(math.log(W,2) - math.log(tal,2)) 

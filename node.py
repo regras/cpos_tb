@@ -24,6 +24,7 @@ import parameter
 import os
 import uni_test
 import socket
+import random
 
 #TODO blockchain class and database decision (move to only db solution?)
 #TODO peer management and limit (use a p2p library - pyre, kademlia?)
@@ -43,12 +44,11 @@ class Node(object):
         self.ipaddr = ipaddr
         self.port = int(port)
         self.balance = 1
-        self.stake = 0
         self.synced = True
         self.peers = deque()
         self.bchain = None
         self.node = hashlib.sha256(self.ipaddr).hexdigest()
-
+        self.stake = 1000
         self.countRound = 0 
         self.lastRound = 0
 
@@ -116,6 +116,8 @@ class Node(object):
         #the delay uses a poison distribution with mean 8 seconds
         self.msg_arrivals = {}  
         self.inserted = {}
+        self.msg_arrivals_out_order = {}
+        self.inserted_out_order = {}
         self.delay = exponential_latency(parameter.AVG_LATENCY)
 
     # Node as client
@@ -223,6 +225,9 @@ class Node(object):
 
     #        self.repsendsocket.send_multipart([self.ipaddr, pickle.dumps(reply, 2)])
 
+    #function sortition. This function return the number of sub-user raffled on round
+  
+
     #function to verify if same block is stable
 
     def stableBlock(self):
@@ -254,19 +259,25 @@ class Node(object):
                 node = message[2]
                 stake = message[3]
                 round = message[4]
-                subuser = 0
                 status,roundBlock = sqldb.verifyRoundBlock(block.index + 1, round)
                 if(not status):
-                    new_hash = None
+                    proofHash = None
                 else:
-                    new_hash, tx = cons.POS(lastBlock_hash=block.hash,round=round,node=node,stake=stake,subuser=subuser)
+                    tx = chr(random.randint(1,100)) #we need create same block payload in the future
+                    userHash, blockHash = cons.POS(lastBlock_hash=block.hash,round=round,node=node,tx=tx)
+                    subUser = validations.sortition(userHash,self.stake,cons)
+                    if(subUser > 0):
+                        proofHash, prioritySubUser = cons.calcProofHash(userHash,blockHash,subUser)
+                    else:
+                        print("USER NOT RAFLED")
+                        proofHash = None
                 
-                if(new_hash and self.synced):
+                if(proofHash and self.synced):
                     self.e.set() #semaforo
                     self.t.set() #semaforo listen function
                     arrive_time = int(time.mktime(datetime.datetime.now().timetuple()))
-                    new_block = Block(block.index + 1, block.hash, round, node, arrive_time, new_hash, tx, subuser)
-                    self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, pickle.dumps(new_block, 2)])
+                    new_block = Block(block.index + 1, block.hash, round, node, arrive_time, blockHash, tx, prioritySubUser, proofHash)
+                    self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, str(self.stake), pickle.dumps(new_block, 2)])
                     status = chaincontrol.addBlockLeaf(new_block) 
                     if(status):
                         sqldb.setLogBlock(new_block, 1)
@@ -415,8 +426,8 @@ class Node(object):
             #print(messages[0])
             
             try:
-                    msg, ip, block_recv = self.subsocket.recv_multipart()
-
+                    msg, ip, user_stake, block_recv = self.subsocket.recv_multipart()
+                    user_stake = int(user_stake)
                     if(ip != self.ipaddr):
     ##                self.f.clear()
     ##                newChain = False 
@@ -429,17 +440,19 @@ class Node(object):
                             self.msg_arrivals[pos] = []
                             self.msg_arrivals[pos].append(b)
                             self.msg_arrivals[pos].append(ip)
+                            self.msg_arrivals[pos].append(user_stake)
                         else:
                             self.msg_arrivals[0] = []
                             self.msg_arrivals[0].append(b)
                             self.msg_arrivals[0].append(ip)
+                            self.msg_arrivals[0].append(user_stake)
 
     ##                self.f.set()
 
             except (zmq.ContextTerminated):
                     print("problem on the zmq.Context")
             time.sleep(1)
-    def listenInsert(self):
+    def listenInsert(self,cons):
         """ Listen to block messages in a REQ/REP socket - We need to change from SUP to REQ/REP, because 
             the new version of the protocol has a variable delay and the blocks will be send on
             diferent times.
@@ -455,7 +468,8 @@ class Node(object):
                 for i, msg in list(self.msg_arrivals.iteritems()):
                     if(self.synced):
                         b = msg[0]
-                        ip = msg[1]     
+                        ip = msg[1]
+                        user_stake = msg[2]   
                         if(not self.inserted):
                             self.inserted[0] = []
                             self.inserted[0].append(i)
@@ -473,15 +487,49 @@ class Node(object):
                             prevBlock = self.commitBlock([b.prev_hash],t=14)
                             self.semaphore.release()
                             if(prevBlock):
-                                if(validations.validateExpectedLocalRound(b) and validations.validateChallenge(b,self.stake)
+                                if(validations.validateExpectedLocalRound(b) and validations.validateProofHash(b,user_stake,cons)
                                 and b.round >= prevBlock.round):
                                     status = self.commitBlock(message = [b],t = 2)
                                     self.semaphore.release()
                                     if(status):
                                         sqldb.setLogBlock(b, 1)
+                                        if(self.msg_arrivals_out_order):
+                                            for j, out in list(self.msg_arrivals_out_order.iteritems()):
+                                                if(self.synced):
+                                                    b = out[0]
+                                                    ip = out[1]
+                                                    user_stake = msg[2]
+                                                    prevBlock = self.commitBlock([b.prev_hash],t=14)
+                                                    self.semaphore.release()
+                                                    remove = False
+                                                    if(prevBlock):
+                                                        print("FIND PLACE OUT OF ORDER BLOCK")
+                                                        remove = True
+                                                        if(validations.validateExpectedLocalRound(b) and validations.validateProofHash(b,user_stake,cons)
+                                                        and b.round >= prevBlock.round):
+                                                            status = self.commitBlock(message=[b],t=2)
+                                                            self.semaphore.release()
+                                                            if(status):
+                                                                sqldb.setLogBlock(b, 1)                                                       
+                                                    if(remove):
+                                                        if(not self.inserted_out_order):
+                                                            self.inserted_out_order[0] = []
+                                                            self.inserted_out_order[0].append(j)
+                                                        else:
+                                                            pos = int(max(self.inserted_out_order) + 1)
+                                                            self.inserted_out_order[pos] = []
+                                                            self.inserted_out_order[pos].append(j)
                             else:
                                 print("NOT SYNC")
-                                print(b.round)
+                                if(self.msg_arrivals_out_order):
+                                    pos = int(max(self.msg_arrivals_out_order)+1)
+                                    self.msg_arrivals_out_order[pos] = []
+                                    self.msg_arrivals_out_order[pos].append(b)
+                                    self.msg_arrivals_out_order[pos].append(ip)
+                                else:
+                                    self.msg_arrivals_out_order[0] = []
+                                    self.msg_arrivals_out_order[0].append(b)
+                                    self.msg_arrivals_out_order[0].append(ip)
                                 
                              
                 self.f.set()
@@ -541,7 +589,6 @@ class Node(object):
                 self.semaphore.release()
 
                 nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
-                self.stake = self.balance
                 #startNewRound
                 if((nowTime - prevTime) >= parameter.timeout):
                     currentRound = int(round(((nowTime - prevTime)/parameter.timeout),0)) + prevRound
@@ -1115,7 +1162,8 @@ def main():
     listen_thread.start()
     n.threads.append(listen_thread)
 
-    listenInsert_thread = threading.Thread(name='listenInsert', target=n.listenInsert)
+    listenInsert_thread = threading.Thread(name='listenInsert', target=n.listenInsert,
+    kwargs={'cons': cons})
     listenInsert_thread.start()
     n.threads.append(listenInsert_thread)
 

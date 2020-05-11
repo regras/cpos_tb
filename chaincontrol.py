@@ -23,17 +23,48 @@ import threading
         del self.leaf[pos]
     else:
         print("chain not removed with success. Fork point not found.")'''
+def Combinations(m,n):
+      # calcula o fatorial de m
+    k = m
+    k_fat = 1
+    cont = 1
+    while cont < k:
+        cont += 1      
+        k_fat *= cont  
+
+    m_fatorial = k_fat
+    # calcula o fatorial de n
+    k = n
+    k_fat = 1
+    cont = 1
+    while cont < k:
+        cont += 1       
+        k_fat *= cont   
+
+    n_fatorial = k_fat
+    # calcula o fatorial de m - n
+    k = m-n
+    k_fat = 1
+    cont = 1
+    while cont < k:
+        cont += 1       
+        k_fat *= cont   
+
+    mn_fatorial = k_fat
+
+    return (m_fatorial/(mn_fatorial * n_fatorial))
 
 def updateChainView(idChain, block):
     if(sqldb.blockIsMaxIndex(block.index)):
+        print("IS MAXINDEX")
         sqldb.writeChainLeaf(idChain, block)
         return True
     elif(not sqldb.blockIsMaxIndex(block.index)):
         if(sqldb.verifyRoundBlock(block.index,block.round)):
-            if(sqldb.blockIsPriority(block.index,block.hash)):
+            if(sqldb.blockIsPriority(block.index,block.proof_hash)):
                 print("ISLEAF")
                 print("NOT MAXINDEX")
-                sqldb.removeAllBlocksHigh(block.index, block.hash)
+                sqldb.removeAllBlocksHigh(block.index, block.proof_hash)
                 sqldb.writeChainLeaf(idChain, block)
                 return True
             else:
