@@ -30,7 +30,7 @@ def calcParameters(node,startSimulation, endSimulation,lastForks,numBlocks):
         startTime = forkQuery[3]
         if(startTime != parameter.GEN_ARRIVE_TIME):
             endTime = forkQuery[4]
-            r = int(math.floor((int(endTime) - int(startTime)) / parameter.timeout)) 
+            r = int(math.floor((float(endTime) - float(startTime)) / parameter.timeout)) 
             avg = avg + r
             #calculating number of blocks
             startBlock = forkQuery[1]

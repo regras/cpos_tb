@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 import sqlite3
 import logging
+from block import Block
 import block
+from block import Block
 import blockchain
 import leaf
-import leafchain
 import parameter
 import datetime
 import time
@@ -38,7 +39,9 @@ def dbConnect():
         tx text,
         arrive_time text,
         PRIMARY KEY (id))""")
+        
     cursor.execute("""CREATE TABLE IF NOT EXISTS localChains (
+        idChain integer NOT NULL,
         id integer NOT NULL,
         round integer,
         prev_hash text,
@@ -47,17 +50,11 @@ def dbConnect():
         mroot text,
         tx text,
         arrive_time text,
-        leaf_head text,
-        leaf_prev_head text,
-        leaf_prev_hash text,
-        leaf_prev_round integer,
-        leaf_prev_arrive_time text,
-        leaf_prev2_hash text,
-        leaf_prev2_round integer,
-        leaf_prev2_arrive_time text,
         fork integer,
         stable integer,
-        PRIMARY KEY (id,leaf_head))""")
+        subuser integer,
+        deny integer,
+        PRIMARY KEY (id,idChain))""")
 
     #cursor.execute("""CREATE TABLE IF NOT EXISTS log_mine (
     #  id text NOT NULL,
@@ -289,6 +286,27 @@ def checkActiveFork(numBlocks):
         return True
     else:
         return False
+def getRoundByIndex(index):
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    cursor.execute("SELECT round from localChains where id = %d" %index)
+    query = cursor.fetchone()
+    if(query):
+        return query[0]
+    else:
+        return None
+def getBlock(hash=None):
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    if(hash):
+        cursor.execute("SELECT * from localChains where hash = '%s'" % hash)
+    else:
+        cursor.execute("SELECT * from localChains where id = (select max(id) from localChains)")
+    query = cursor.fetchone()
+    if(query):
+        return dbtoBlock(query)
+    else:
+        return None
 
 def getBlocks(numBlocks):
     db = sqlite3.connect(databaseLocation)
@@ -362,12 +380,12 @@ def hasDb(hash):
 def setStableBlocks(round):
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
-    round = round - 2
-    cursor.execute("SELECT hash from localChains t1 WHERE EXISTS (SELECT hash FROM localChains t2 WHERE t1.id = t2.id GROUP BY id HAVING COUNT(*) = 1) and stable = 0")
+    round = round - parameter.roundTolerancy
+    cursor.execute("SELECT id, hash from localChains t1 WHERE stable = 0 and deny = 0 and EXISTS (SELECT hash FROM localChains t2 WHERE t1.id = t2.id and t2.deny = t1.deny GROUP BY id HAVING COUNT(*) = 1)")
     queries = cursor.fetchall()
     if queries:
         for query in queries:
-            cursor.execute("UPDATE localChains set stable = 1 WHERE round < %d AND stable = 0 AND hash = '%s'" % (round, query[0]))
+            cursor.execute("UPDATE localChains set stable = 1 WHERE round < %d AND stable = 0 AND hash = '%s'" % (round, query[1]))
             db.commit()
     cursor.execute("SELECT COUNT(*) FROM localChains WHERE stable = 1")
     queries = cursor.fetchone()
@@ -543,6 +561,7 @@ def dbCheck():
     db.commit()
     db.close()
     return bc
+
 def checkChainIsLeaf(leaf_db):
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
@@ -561,39 +580,17 @@ def checkChainIsLeaf(leaf_db):
     else:
         return False    
 
-def dbCheckLeaf(bc):
+def dbInsertFirstBlock():
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
-    cursor.execute('select * from localChains T1 where T1.id = (select max(T2.id) from localChains T2 where T1.leaf_head = T2.leaf_head group by T2.leaf_head)')
+    cursor.execute('select * from localChains')
     leafs_db = cursor.fetchall()
-    i = 1
-    l = None
-    if leafs_db:
-        for leaf_db in leafs_db:
-            #print(leaf_db)
-            #check if the Chain is Valid
-            #checkChainIsLeaf(leaf_db)
-            if i == 1:
-                if(not checkChainIsLeaf(leaf_db)):
-                    l = leafchain.Leafchain(leaf_db)
-                    i = 0 
-            else:
-                if(not checkChainIsLeaf(leaf_db)):
-                    l.appendLeaf(leaf_db)
-    else:
-        #leaf_db = cursor.fetchone()
-        l = leafchain.Leafchain()
-        writeChainLeaf(l.leaf[0][0],bc.getLastBlock())
-
-    leafs = l.getLeafs()
-    for k,t in leafs.iteritems():
-        print(t[0].leaf_hash)
-        print(t[0].leaf_round)
-        print(t[0].leaf_arrivedTime)
-    l.releaseSemaphore()  
+    if not leafs_db:
+        b = block.Block(index=0,prev_hash="",round=0,node="",b_hash="",arrive_time=parameter.GEN_ARRIVE_TIME)
+        createNewChain(b)
     db.commit()
     db.close()
-    return l
+    return True
     
 def writeBlock(b):
     db = sqlite3.connect(databaseLocation)
@@ -618,44 +615,147 @@ def writeBlock(b):
         db.commit()
         db.close()
 
-def writeChainLeaf(l, b):
+def writeChainLeaf(idChain,b):
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
-
     try:
-        if isinstance(b, list) and isintance(l, list):
-            cursor.executemany('INSERT INTO localChains VALUES (?,?,?,?,?,?,?,?)', b)
-            print("problem on insertion funcion----")
-        else: 
-            #print("HEAD NOVO BLOCO")
-            #print(l.leaf_head)     
-            cursor.execute('INSERT INTO localChains VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', (
-                    b.__dict__['index'],
-                    b.__dict__['round'],
-                    b.__dict__['prev_hash'],
-                    b.__dict__['hash'],
-                    b.__dict__['node'],
-                    b.__dict__['mroot'],
-                    b.__dict__['tx'],
-                    b.__dict__['arrive_time'],
-                    l.__dict__['leaf_head'],
-                    l.__dict__['leaf_prev_head'],
-                    l.__dict__['leaf_prev_hash'],
-                    l.__dict__['leaf_prev_round'],
-                    l.__dict__['leaf_prev_arrivedTime'],
-                    l.__dict__['leaf_prev2_hash'],
-                    l.__dict__['leaf_prev2_round'],
-                    l.__dict__['leaf_prev2_arrivedTime'],
-                    '0',
-                    '0'
-                    ))
+        cursor.execute('INSERT INTO localChains VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)', (
+                idChain,
+                b.__dict__['index'],
+                b.__dict__['round'],
+                b.__dict__['prev_hash'],
+                b.__dict__['hash'],
+                b.__dict__['node'],
+                b.__dict__['mroot'],
+                b.__dict__['tx'],
+                b.__dict__['arrive_time'],
+                '0',
+                '0',
+                b.__dict__['subuser'],
+                '0'
+                ))
     except sqlite3.IntegrityError:
         logger.warning('db insert duplicated block in the same chain')
     finally:
         db.commit()
         db.close()
-  
+def getIdChain(blockHash):
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    try:
+        cursor.execute("select idChain from localChains where hash = '%s'" %blockHash)
+        query = cursor.fetchone()
+        db.close()
+        if(query):
+            return query[0]
+        else:
+            return None
+    except sqlite3.IntegrityError:
+        print("impossible to return chain id")
 
+def blockIsPriority(blockIndex,blockHash):
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    try:
+        cursor.execute('select hash from localChains where id = %d' %blockIndex)
+        queries = cursor.fetchall()
+        db.close()
+        if(queries):
+            for query in queries:
+                if(int(query[0],16) < int(blockHash,16)):
+                    return False
+        return True
+    except sqlite3.IntegrityError:
+        print("query failed.")
+
+def getLastBlock():
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    cursor.execute('select * from localChains where id = (select max(id) from localChains)')
+    query = cursor.fetchone()
+    db.close()
+    if(query):
+        return dbtoBlock(query)
+    else:
+        None
+   
+def getAllKnowChains():
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    try:
+        cursor.execute('select * from localChains t1 where deny = 0 and not exists (select prev_hash from localChains t2 where t1.hash = t2.prev_hash) group by idChain')
+        queries = cursor.fetchall()
+        db.close()
+        return queries
+       
+    except sqlite3.IntegrityError:
+        print("getAllKnowBlock Error")
+
+def updateBlock(lastTimeTried,hash):
+    try:
+        db = sqlite3.connect(databaseLocation)
+        cursor = db.cursor()
+        cursor.execute("update localChains set lastTimeTried = '%s' where hash='%s'" %(lastTimeTried,hash))
+        db.commit()
+        db.close()
+    except sqlite3.IntegrityError:
+        print("Update block error")
+
+def blockIsLeaf(blockIndex, blockPrevHash): 
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    cursor.execute("select * from localChains where id = %d" % blockIndex)
+    queries = cursor.fetchall()
+    db.close()
+    if queries:
+        for query in queries:
+            prev_hash = query[3]
+            if(prev_hash == blockPrevHash):
+                return False
+    return True
+    
+def createNewChain(block):
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    cursor.execute('select max(idChain) from localChains')
+    query = cursor.fetchone()
+    db.close()
+    if query[0]:
+        writeChainLeaf(int(query[0]) + 1, block)        
+    else:
+        writeChainLeaf(1, block)
+    return True
+
+def blockIsMaxIndex(blockIndex):
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    cursor.execute("select * from localChains where id = %d" % blockIndex)
+    queries = cursor.fetchall()
+    db.close()
+    if queries:
+        return False
+    else:
+        return True
+
+def removeAllBlocksHigh(blockIndex,blockRound):
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    cursor.execute('select distinct(idChain) from localChains')
+    queries = cursor.fetchall()
+    status = False
+    if(queries):
+        for query in queries:
+            cursor.execute('select * from localChains where id = %d and idChain = %d' %(blockIndex,query[0]))
+            bquery = cursor.fetchone()
+            if(bquery):
+                if(bquery[2] > blockRound):
+                    cursor.execute('delete * from localChains where id >= %d' %(bquery[1]))
+                    db.commit()
+                    status = True
+        db.close()
+    else:
+        return status
+    
 def writeChain(b):
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
@@ -782,7 +882,8 @@ def removeChain(blockHash):
                 hash = removedBlocks[i][0]
                 print("hash removed")
                 print(hash)
-                cursor.execute("DELETE FROM localChains where hash = '%s'" % hash)
+                cursor.execute("UPDATE localChains set deny = 1 where hash = '%s'" % hash)
+                #cursor.execute("DELETE FROM localChains where hash = '%s'" % hash)
                 db.commit()
                 i = i - 1
             db.close()
@@ -1011,8 +1112,8 @@ def dbtoBlock(b):
     if isinstance(b, block.Block) or b is None:
         return b
     else:
-        return block.Block(b[0],b[2],b[1],b[4],b[7],b[3],b[6])
-
+        return block.Block(b[1],b[3],b[2],b[5],b[8],b[4],b[7],b[11],b[12])
+ 
 def getLastBlockIndex():
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()

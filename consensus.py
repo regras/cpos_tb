@@ -67,12 +67,12 @@ class Consensus:
     def getTarget(self):
         return self.target
         
-    def POS(self, lastBlock_hash, round, node, stake, skip = None):
+    def POS(self, lastBlock_hash, round, node, stake, skip = None, subuser=0):
         """ Find nonce for PoW returning block information """
         # chr simplifies merkle root and add randomness
         tx = chr(random.randint(1,100))
 
-        c_header = str(lastBlock_hash) + str(round) + str(node) # candidate header
+        c_header = str(lastBlock_hash) + str(round) + str(node) + str(subuser) # candidate header
 
         hash_result = hashlib.sha256(c_header).hexdigest()
         #print(hash_result)

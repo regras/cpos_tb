@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
 # Initial Arrive Time
-GEN_ARRIVE_TIME = 1573486728
+GEN_ARRIVE_TIME = 1588347516
 
 # Threshold that the blockchain can grown and accept one previous block with the best round.
 THRESHOLD = 2
 
 # Time in seconds
-timeout = 10
+timeout = 20
 # difficulty
-difficulty = 6
+difficulty = 2
 
 ### Test Variables ###
 num_block_created = 0
@@ -25,4 +25,4 @@ roundTolerancy = 2
 
 TEST = 100
 
-NODES = 4
+NODES = 2

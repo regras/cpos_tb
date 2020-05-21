@@ -7,7 +7,7 @@ import json
 class Leaf:
     def __init__(self, leaf_index, leaf_prev_hash, leaf_round, leaf_node, leaf_arrivedTime=0, leaf_bhash=None,
     leaf_head=None, leaf_prev_head=None,leaf_prev_round=None, leaf_prev_arrivedTime=None, leaf_prev2_hash=None,
-    leaf_prev2_round=None, leaf_prev2_arrivedTime=None, lastId=None):
+    leaf_prev2_round=None, leaf_prev2_arrivedTime=None, lastId=None, subuser=0):
         self.leaf_index = leaf_index
         self.leaf_head = leaf_head
         self.leaf_prev_head = leaf_prev_head
@@ -25,6 +25,8 @@ class Leaf:
         self.leaf_prevLastTimeTried = leaf_prev_arrivedTime
         self.leaf_prev2LastTimeTried = leaf_prev2_arrivedTime
         self.leaf_lastId = leaf_index
+        self.leaf_subuser = subuser
+         
         if leaf_bhash:
             self.leaf_hash = leaf_bhash
         else: # mostly genesis leaf
