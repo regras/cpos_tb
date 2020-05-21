@@ -24,7 +24,7 @@ def sortition(userHash,stake,cons):
     limitSup = limitInf + chaincontrol.Combinations(stake,1) * p * (np**(stake - 1))
     print("LIMIT INF: ", limitInf)
     print("LIMIT SUP: ", limitSup)
-    while(q >= limitInf and q > limitSup and j <= stake):
+    while(q >= limitInf):
         j = j + 1
         limitInf = limitSup
         limitSup = limitSup + chaincontrol.Combinations(stake,j+1) * (p**(j+1)) * (np**(stake - (j+1)))
@@ -113,7 +113,7 @@ def validateExpectedRound(block, lastBlock):
         
 def validateExpectedLocalRound(block):
     nowTime = time.mktime(datetime.datetime.now().timetuple())
-    expected_round = int(round((float(nowTime) - float(parameter.GEN_ARRIVE_TIME))/parameter.timeout,0))
+    expected_round = int(round((float(block.arrive_time) - float(parameter.GEN_ARRIVE_TIME))/parameter.timeout,0))
     #if(calculated_rounds == 0 and ((int(block.arrive_time) - int(leaf_arrive_time)) < parameter.timeout)):
     #    calculated_rounds = 1
 

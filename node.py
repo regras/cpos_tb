@@ -40,7 +40,7 @@ class Node(object):
 
     ctx = None
 
-    def __init__(self, ipaddr='127.0.0.1', port=9000):
+    def __init__(self, ipaddr='127.0.0.1', port=9000,stake=1):
         self.ipaddr = ipaddr
         self.port = int(port)
         self.balance = 1
@@ -48,7 +48,7 @@ class Node(object):
         self.peers = deque()
         self.bchain = None
         self.node = hashlib.sha256(self.ipaddr).hexdigest()
-        self.stake = 1000
+        self.stake = int(stake)
         self.countRound = 0 
         self.lastRound = 0
 
@@ -255,16 +255,16 @@ class Node(object):
             if(message):
                 #get parameters
                 block = message[0]
-                cons = message[1]
-                node = message[2]
-                stake = message[3]
-                round = message[4]
+                cons = message[1]                
+
+                nowTime = time.mktime(datetime.datetime.now().timetuple())
+                round = int(math.floor((float(nowTime) - float(parameter.GEN_ARRIVE_TIME))/parameter.timeout))
                 status,roundBlock = sqldb.verifyRoundBlock(block.index + 1, round)
-                if(not status):
+                if(not status and round <= block.round):
                     proofHash = None
                 else:
                     tx = chr(random.randint(1,100)) #we need create same block payload in the future
-                    userHash, blockHash = cons.POS(lastBlock_hash=block.hash,round=round,node=node,tx=tx)
+                    userHash, blockHash = cons.POS(lastBlock_hash=block.hash,round=round,node=self.node,tx=tx)
                     subUser = validations.sortition(userHash,self.stake,cons)
                     if(subUser > 0):
                         proofHash, prioritySubUser = cons.calcProofHash(userHash,blockHash,subUser)
@@ -276,7 +276,7 @@ class Node(object):
                     self.e.set() #semaforo
                     self.t.set() #semaforo listen function
                     arrive_time = int(time.mktime(datetime.datetime.now().timetuple()))
-                    new_block = Block(block.index + 1, block.hash, round, node, arrive_time, blockHash, tx, prioritySubUser, proofHash)
+                    new_block = Block(block.index + 1, block.hash, round, self.node, arrive_time, blockHash, tx, prioritySubUser, proofHash)
                     self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, str(self.stake), pickle.dumps(new_block, 2)])
                     status = chaincontrol.addBlockLeaf(new_block) 
                     if(status):
@@ -594,13 +594,13 @@ class Node(object):
                     currentRound = int(round(((nowTime - prevTime)/parameter.timeout),0)) + prevRound
                     prevTime = nowTime
                     prevRound = currentRound 
-                    self.generateNewblock(currentRound,self.node,self.stake,cons)
+                    self.generateNewblock(currentRound, cons)
                 else:
                     time.sleep(0.1)
             else:
                 time.sleep(0.1)
 
-    def generateNewblock(self, round, node, stake, cons):
+    def generateNewblock(self, round, cons):
         """ Loop for PoS in case of solve challenge, returning new Block object """
         #r = int(math.floor((int(time.mktime(datetime.datetime.now().timetuple())) - int(lastBlock.arrive_time)) / parameter.timeout))
         #startTime = int(time.mktime(datetime.datetime.now().timetuple()))
@@ -615,7 +615,7 @@ class Node(object):
                 print(block.index + 1)
                 print("trying round:")
                 print(round)
-                replyMine, triedTime = self.commitBlock(message=[block,cons,self.node,self.stake,round],t=0)
+                replyMine, triedTime = self.commitBlock(message=[block,cons],t=0)
                 self.semaphore.release()
         self.e.clear() 
         
@@ -1094,6 +1094,8 @@ def main():
                         help='Specify listen IP address', default='127.0.0.1')
     parser.add_argument('-p', '--port', metavar='port', dest='port',
                         help='Specify listen port', default=9000)
+    parser.add_argument('-s', '--stake', metavar='stake', dest='stake',
+                        help='Specify stake user', default=1)
     parser.add_argument('--peers', dest='peers', nargs='*',
                         help='Specify peers IP addresses', default=[])
     parser.add_argument('--miner', dest='miner', action='store_true',
@@ -1109,6 +1111,7 @@ def main():
     if cfgparser.read(args.config_file):
         args.peers = cfgparser.get('node','ip')
         args.port = int(cfgparser.get('node','port'))
+        args.stake = int(cfgparser.get('node','stake'))
         args.peers = cfgparser.get('node','peers').split('\n')
         args.miner = cfgparser.getboolean('node','miner')
         args.diff = int(cfgparser.get('node','diff'))
@@ -1125,7 +1128,8 @@ def main():
     #sqldb.databaseLocation = 'blocks/blockchain.db'
     cons = consensus.Consensus()
     
-    n = Node(args.ipaddr, args.port)
+    #n = Node(args.ipaddr, args.port)
+    n = Node(args.ipaddr, args.port, args.stake)
     n.threads = []
     # Connect to predefined peers
     if args.peers:
@@ -1212,7 +1216,7 @@ def main():
     #os.system('sudo python uni_test.py -n %s' % text)
 
     #call timetocreateblocks function to automatic simulation
-    time.sleep(1)
+    time.sleep(300)
     uniTest_thread = threading.Thread(name='uniTest', target=uni_test.timetocreateblocks, kwargs={'node':n})
     uniTest_thread.start()
 

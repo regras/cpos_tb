@@ -5,7 +5,7 @@ import json
 
 
 class Block:
-    def __init__(self, index, prev_hash, round, node, arrive_time=0, b_hash=None, tx='',subuser=0,proof_hash=None):
+    def __init__(self, index, prev_hash, round, node, arrive_time=0, b_hash=None, tx='',subuser=1,proof_hash=0):
         self.index = index
         self.prev_hash = prev_hash
         self.tx = tx

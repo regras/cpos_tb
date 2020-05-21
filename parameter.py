@@ -8,7 +8,7 @@ GEN_ARRIVE_TIME = 1573486728
 THRESHOLD = 2
 
 # Time in seconds
-timeout = 10
+timeout = 5
 # difficulty
 
 ### Test Variables ###
@@ -29,6 +29,6 @@ NODES = 2
 
 W = 1000 #all network coins
 
-tal = 1 #proposer parameter
+tal = 0.25 #proposer parameter
 
 difficulty = float(math.log(W,2) - math.log(tal,2)) 

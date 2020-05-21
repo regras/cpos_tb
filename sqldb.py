@@ -85,6 +85,7 @@ def dbConnect():
         node text,
         prev_hash text,
         hash,
+        proof_hash,
         status integer,
         UNIQUE (idAutoNum,hash))""")
      
@@ -454,13 +455,14 @@ def setLogBlock(b, accepted):
     cursor = db.cursor()
     if(b):
         try:
-            cursor.execute('INSERT INTO log_block (id, round, arrive_time, node, prev_hash, hash, status) VALUES (?,?,?,?,?,?,?)',(
+            cursor.execute('INSERT INTO log_block (id, round, arrive_time, node, prev_hash, hash,proof_hash,status) VALUES (?,?,?,?,?,?,?,?)',(
                 b.__dict__['index'],
                 b.__dict__['round'],
                 b.__dict__['arrive_time'],
                 b.__dict__['node'],
                 b.__dict__['prev_hash'],
                 b.__dict__['hash'],
+                b.__dict__['proof_hash'],
                 accepted))
             
         except sqlite3.IntegrityError:
