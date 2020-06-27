@@ -6,8 +6,10 @@ import os
 import calculation
 import time
 import sys
+import random
 #import node
-def timetocreateblocks(node):   
+def timetocreateblocks(node,stake):
+        
     time.sleep(2) 
     start = timer()
     end = timer()
@@ -21,7 +23,8 @@ def timetocreateblocks(node):
     print("Call timetocreateBlocks function!")
     while(count <= 0):
         if not locked:
-            time.sleep(1)
+            node.setStake(stake[count])
+            time.sleep(20)                 
             os.system("./blockchain-cli startmining")
             start = timer()
             locked = True
@@ -53,8 +56,9 @@ def timetocreateblocks(node):
             print(lastBlockSimulation)
             count = count + 1
             time.sleep(1)
+
         else:
-            time.sleep(30)
+            time.sleep(1)
     
     #results.close()
     #os.system("./blockchain-cli exit")

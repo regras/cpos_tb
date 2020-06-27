@@ -14,6 +14,7 @@ def validateChallenge(block, stake):
 
 def sortition(userHash,stake,cons):
     p = cons.getTarget() / float(2**256)
+    #p = 0.000125
     print("SUCCESS PROB: ", p)
     print("STAKE: ", stake)
     np = 1 - p
@@ -38,8 +39,8 @@ def validateProofHash(block,user_stake,cons):
         proof_hash,subuser = cons.calcProofHash(userHash,blockHash,j)
         if(int(proof_hash,16) == int(block.proof_hash,16)):
             print("VERIFIED")
-            return True
-    return False
+            return True,j
+    return False,j
 
 def validateRound(block, bc):
     chainBlock = bc.getLastBlock()
@@ -113,7 +114,7 @@ def validateExpectedRound(block, lastBlock):
         
 def validateExpectedLocalRound(block):
     nowTime = time.mktime(datetime.datetime.now().timetuple())
-    expected_round = int(round((float(block.arrive_time) - float(parameter.GEN_ARRIVE_TIME))/parameter.timeout,0))
+    expected_round = int(math.floor((float(block.arrive_time) - float(parameter.GEN_ARRIVE_TIME))/parameter.timeout))
     #if(calculated_rounds == 0 and ((int(block.arrive_time) - int(leaf_arrive_time)) < parameter.timeout)):
     #    calculated_rounds = 1
 
