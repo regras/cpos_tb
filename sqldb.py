@@ -92,7 +92,7 @@ def dbConnect():
       proof_hash text,
       status integer,
       numSuc integer,
-      UNIQUE (hash))""")
+      UNIQUE (proof_hash))""")
      
     db.commit()
     db.close()
@@ -135,8 +135,8 @@ def reversionBlock(round):
                 cursor.execute("SELECT * from localChains where hash = '%s'" %item[3])
                 item = cursor.fetchone()
 
-            #print(z)
-            #print(blockchain)
+            print(z)
+            print(blockchain)
             phr = chaincontrol.reversionProb(query[2],round,z,blockchain)
             blockchain = {}
             z = {}
@@ -147,6 +147,8 @@ def reversionBlock(round):
                 cursor.execute("UPDATE localChains set stable = 1, round_stable = %d where proof_hash = '%s'" %(round,query[12]))
                 db.commit()
                 print("BLOCK INDEX %d COMMITED" %query[1])
+            else:
+                break
            
 
     except Exception as e:

@@ -58,7 +58,7 @@ def timetocreateblocks(node,stake):
             time.sleep(1)
 
         else:
-            time.sleep(1)
+            time.sleep(15)
     
     #results.close()
     #os.system("./blockchain-cli exit")

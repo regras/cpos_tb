@@ -24,7 +24,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 #mode = 3 (stake dividido igualmente entre os participantes)
 #mode = 4 (stake concentrado em apenas um participante)
 #mode = 5 (x% do stake concentrado com y% dos participantes e distribuicao igual do stake)
-def testHostWithPrivateDirs(number=2):
+def testHostWithPrivateDirs(number=10):
     "Test bind mounts"
     topo = SingleSwitchTopo( number )
     privateDirs = privateDirs=[ (dir_path+'/blocks',

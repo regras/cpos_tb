@@ -25,7 +25,7 @@ import os
 import uni_test
 import socket
 import random
-
+from operator import itemgetter
 #TODO blockchain class and database decision (move to only db solution?)
 #TODO peer management and limit (use a p2p library - pyre, kademlia?)
 #TODO serialization/deserialization functions, change pickle to json?
@@ -456,7 +456,7 @@ class Node(object):
 
             except (zmq.ContextTerminated):
                     print("problem on the zmq.Context")
-            time.sleep(1)
+            time.sleep(0.1)
     def listenInsert(self,cons):
         """ Listen to block messages in a REQ/REP socket - We need to change from SUP to REQ/REP, because 
             the new version of the protocol has a variable delay and the blocks will be send on
@@ -470,7 +470,8 @@ class Node(object):
                 self.f.clear()
                 #if (not self.e.is_set()):
                 #    self.e.set()
-                for i, msg in list(self.msg_arrivals.iteritems()):
+                for i, msg in sorted(self.msg_arrivals.items(), key=itemgetter(1)):
+                #for i, msg in list(self.msg_arrivals.iteritems()):
                     if(self.synced):
                         b = msg[0]
                         ip = msg[1]
@@ -601,9 +602,9 @@ class Node(object):
                     self.semaphore.release()
                     self.generateNewblock(currentRound, cons)                                     
                 else:
-                    time.sleep(0.1)
+                    time.sleep(1)
             else:
-                time.sleep(0.1)
+                time.sleep(1)
 
     def generateNewblock(self, round, cons):
         """ Loop for PoS in case of solve challenge, returning new Block object """
@@ -1231,7 +1232,7 @@ def main():
     #os.system('sudo python uni_test.py -n %s' % text)
 
     #call timetocreateblocks function to automatic simulation
-    time.sleep(120)
+    time.sleep(30)
     uniTest_thread = threading.Thread(name='uniTest', target=uni_test.timetocreateblocks, kwargs={'node':n,'stake':stakeList})
     uniTest_thread.start()
 

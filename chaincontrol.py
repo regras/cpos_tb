@@ -93,7 +93,7 @@ def probTree(r,x,z,blockchain):
         if(status):
             d = d + 1 
         t = t + 1        
-    #print(tree)
+    print(tree)
     return tree
 
 '''def probTree(r,x,z,blockchain):
@@ -162,7 +162,7 @@ def num_blocks_between(r,t,blockchain):
         #zr0 = calcZr(None,0)
         if(t <= maxBlockchain):
             for k in range(r,t + 1):
-                if(not blockchain):
+                if(blockchain[k]):
                     num = num + 1
         else:
             print("invalid position")

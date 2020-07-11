@@ -11,7 +11,7 @@ GEN_ARRIVE_TIME = 1573486728
 THRESHOLD = 2
 
 # Time in seconds
-timeout = 10
+timeout = 30
 # difficulty
 
 ### Test Variables ###
@@ -26,7 +26,7 @@ TOLERANCY = timeout * 1.4
 
 roundTolerancy = 0
 
-betha = 0.0000001
+betha = 0.00001
 
 TEST = 100
 
@@ -34,14 +34,18 @@ NODES = 2
 
 W = 10000 #all network coins
 
-tal = 2 #proposer parameter
+q = 0 #attackers probability
+
+hW = int(W * float(1 - q)) #honest coins
+
+tal = 10 #proposer parameter
 
 difficulty = float(math.log(W,2) - math.log(tal,2)) 
 
 
 def defineStake(nodes):
     numStake = {}
-    i = 1
+    i = 16
     rate = {}
     rate[4] = [0.10,0.90]
     rate[5] = [0.10,0.70]
@@ -54,7 +58,7 @@ def defineStake(nodes):
     rate[12] = [0.10,0.50]
     rate[13] = [0.50,0.90]
     rate[14] = [0.50,0.70]
-    while(i <= 1):
+    while(i == 16):
         #print(nodes)
         if(i <= 3):
             stakeTotal = W - nodes
@@ -141,7 +145,7 @@ def defineStake(nodes):
                     numStake[i][h] = [1]
 
         elif(i == 16):
-            stake = W / nodes
+            stake = hW / nodes
             numStake[i] = {}
             for h in range(1,nodes+1):
                 numStake[i][h] = [stake]
