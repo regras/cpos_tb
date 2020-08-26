@@ -280,11 +280,11 @@ class Node(object):
                     self.e.set() #semaforo
                     self.t.set() #semaforo listen function
                     arrive_time = int(time.mktime(datetime.datetime.now().timetuple()))
-                    new_block = Block(block.index + 1, block.hash, round, self.node, arrive_time, blockHash, tx, prioritySubUser, proofHash)
+                    new_block = Block(block.index + 1, block.hash, round, self.node, arrive_time, blockHash, tx, subUser, proofHash)
                     self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, str(self.stake), pickle.dumps(new_block, 2)])
                     status = chaincontrol.addBlockLeaf(block=new_block,subUser=subUser) 
                     if(status):
-                        sqldb.setLogBlock(new_block, 1, subUser)
+                        sqldb.setLogBlock(new_block, 1)
                         #self.semaphore.release()
                         return True,arrive_time
                     #else:
@@ -498,7 +498,7 @@ class Node(object):
                                     if(checkProof):
                                         status = self.commitBlock(message = [b,subUser],t = 2)                                        
 
-                                    sqldb.setLogBlock(b,1,subUser)                                                                                                       
+                                    sqldb.setLogBlock(b,1)                                                                                                       
                                     self.semaphore.release()
                                     '''if(self.msg_arrivals_out_order):
                                         for j, out in list(self.msg_arrivals_out_order.iteritems()):

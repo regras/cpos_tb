@@ -2,6 +2,7 @@ import math
 import random
 import time
 import datetime
+import chaincontrol
 # -*- coding: utf-8 -*-
 
 # Initial Arrive Time
@@ -11,7 +12,7 @@ GEN_ARRIVE_TIME = 1573486728
 THRESHOLD = 2
 
 # Time in seconds
-timeout = 30
+timeout = 40
 # difficulty
 
 ### Test Variables ###
@@ -26,11 +27,11 @@ TOLERANCY = timeout * 1.4
 
 roundTolerancy = 0
 
-betha = 0.00001
+betha = 0.000001
 
 TEST = 100
 
-NODES = 2
+NODES = 10
 
 W = 10000 #all network coins
 
@@ -40,8 +41,16 @@ hW = int(W * float(1 - q)) #honest coins
 
 tal = 10 #proposer parameter
 
-difficulty = float(math.log(W,2) - math.log(tal,2)) 
+difficulty = float(math.log(W,2) - math.log(tal,2))
 
+def comb(tal):
+    combi = {}
+    for k in range(0,tal+20):
+        index = "("+str(W)+","+str(k)+")"
+        combi[index] = chaincontrol.Combinations(W,k)
+    return combi
+    
+combination = comb(tal)
 
 def defineStake(nodes):
     numStake = {}

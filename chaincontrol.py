@@ -219,19 +219,25 @@ def calcZr(h,numSuc):
         hpr = int(h,16) / float(2**256)
     qr = 0
     for k in range(0,numSuc+1):
-        comb = Combinations(parameter.W,k)
+        index = "("+str(parameter.W)+","+str(k)+")"
+        if(index in parameter.combination):
+            comb = parameter.combination[index]
+        else:
+            print("combinations not present in list")
+            comb = Combinations(parameter.W,k)
+        #comb = Combinations(parameter.W,k)
         qr = qr + comb*(p**k)*((1-p)**(parameter.W - k))
     qr = 1 - qr
     #print("Qr: %f" %qr)
     #print("hpr: %f" %hpr)
-    zr = hpr * qr
+    #zr = hpr * qr
     #print("zr: %f" %zr)
-    return zr
+    return qr
 
 def updateChainView(idChain, block, subUser):
     if(sqldb.blockIsMaxIndex(block.index)):
         print("IS MAXINDEX")
-        sqldb.writeChainLeaf(idChain, block, subUser)
+        sqldb.writeChainLeaf(idChain, block)
         return True
     elif(not sqldb.blockIsMaxIndex(block.index)):
         status,round = sqldb.verifyRoundBlock(block.index,block.round)
@@ -241,7 +247,7 @@ def updateChainView(idChain, block, subUser):
                 print("ISLEAF")
                 print("NOT MAXINDEX")
                 sqldb.removeAllBlocksHigh(block.index, block.proof_hash)
-                sqldb.writeChainLeaf(idChain, block, subUser)
+                sqldb.writeChainLeaf(idChain, block)
                 return True
             else:
                 return False
