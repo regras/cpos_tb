@@ -6,6 +6,47 @@ import os
 import parameter
 import math
 
+def endwithoutreversion(node):
+    ipaddr = str(node.getNodeIp())
+    fileName = 'sync_results_'+ipaddr+'.txt'
+    if(os.path.isfile(fileName)):
+        results = open(fileName, 'a')
+    results.write('#################################################\n')
+    results.close()
+
+def newReversion(node,round,lastround):
+    ipaddr = str(node.getNodeIp())
+    fileName = 'sync_results_'+ipaddr+'.txt'
+    if(os.path.isfile(fileName)):
+        results = open(fileName, 'a')
+    else:
+        results = open(fileName, 'a')
+        results.write('################Analise Reversao longo alcance################\n')
+
+    results.write('Rodada de inicio da ressincronizacao: '+(str(round))+'\n'
+    + 'Rodada final da ressincronizacao: '+(str(lastround))+'\n')    
+    results.close()
+
+def calcReversionLenght(node,fblock,lblock):
+    ipaddr = str(node.getNodeIp())
+    fileName = 'sync_results_'+ipaddr+'.txt'
+    blocks = sqldb.getBlockIntervalByRound(fblock.round,lblock.round)    
+    if(os.path.isfile(fileName)):
+        results = open(fileName, 'a')
+    #else:
+    #    results = open(fileName, 'a')
+    #    results.write('################Analise Reversao longo alcance################\n')
+
+    results.write('Numero de blocos revertidos: ' +(str(len(blocks)))+'\n\n')
+
+    for block in blocks:
+        results.write('indice do bloco revertido: '+str(block[1])+'\n'
+        + 'rodada do bloco revertido: '+str(block[2])+'\n'
+        + 'hash do bloco revertido: '+str(block[4])+'\n'
+        + 'rodada de confirmacao: '+str(block[14])+'\n')
+
+    results.write('#################################################\n')
+    results.close()
 
 def calcParameters(node,startSimulation, endSimulation,lastForks,numBlocks):
     blocks = sqldb.getBlocks(numBlocks)

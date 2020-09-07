@@ -8,6 +8,8 @@ import time
 import math
 import datetime
 import parameter
+import pickle
+from collections import defaultdict
 
 MSG_LASTBLOCK = 'getlastblock'
 MSG_BLOCK = 'block'
@@ -20,10 +22,12 @@ MSG_UNKNOWBLOCKCHAIN = 'unknowblocks'
 MSG_ALLCHAIN = 'allchain'
 MSG_REQBLOCK = 'reqblock'
 MSG_REQBLOCKS = 'reqblocks'
+MSG_REQPEER = 'reqpeers'
+MSG_TX = 'transaction'
 
 
 
-def handleMessages(bc, messages):
+def handleMessages(bc, messages, node=None):
     cmd = messages[0] if isinstance(messages, list) else str(messages)
     cmd = cmd.lower()
     if cmd == MSG_LASTBLOCK:
@@ -43,7 +47,27 @@ def handleMessages(bc, messages):
     elif cmd == MSG_ALLCHAIN:
         return sqldb.dbGetAllChain([messages[1]])
     elif cmd == MSG_REQBLOCK:
-        return sqldb.dbReqBlock([messages[1]])
+        return sqldb.dbReqBlock([messages[1],messages[2]])
+    elif cmd == MSG_REQPEER:
+        salt = messages[1]
+        ipaddr = messages[2]
+        peerSalt = str(node.getIp()) + str(salt)
+        distance = int(hashlib.sha256(str(ipaddr)).hexdigest(),16) ^ int(hashlib.sha256(peerSalt).hexdigest(),16)
+        if(distance <= parameter.theta * float((2**256 - 1))):
+            if(node.getNumAccepted() < parameter.k):
+                localSalt = node.getLocalSalt()
+                peerSalt = str(ipaddr) + str(localSalt)
+                localDistance = int(hashlib.sha256(str(node.getIp())).hexdigest(),16) ^ int(hashlib.sha256(peerSalt).hexdigest(),16)                
+                node.insertAcceptPeer(ipaddr,localDistance)
+                return True
+            else:
+                localSalt = node.getLocalSalt()
+                peerSalt = str(ipaddr) + str(localSalt)
+                localDistance = int(hashlib.sha256(str(node.getIp())).hexdigest(),16) ^ int(hashlib.sha256(peerSalt).hexdigest(),16)
+                if(node.checkDistance(ipaddr,localDistance)):
+                    node.insertAcceptPeer(ipaddr,localDistance)
+                    return True
+        return False
     else:
         return None
 
@@ -81,11 +105,11 @@ class Consensus:
         
     def calcProofHash(self,userHash,blockHash,subUser):
         j = 1
-        header = str(userHash) + str(blockHash) + str(j)
+        header = str(userHash) + str(j)
         proofHash = hashlib.sha256(header).hexdigest()
         while(j < subUser):
             j = j + 1
-            header = str(userHash) + str(blockHash) + str(j)
+            header = str(userHash) + str(j)
             newHash = hashlib.sha256(header).hexdigest()
             if(int(proofHash,16) > int(newHash,16)):
                 proofHash = newHash

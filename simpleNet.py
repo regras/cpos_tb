@@ -12,18 +12,14 @@ import time
 import random
 import parameter
 import math
-
+import hashlib
 # Sample usage
 # sudo python simpleNet.py <n>
 # n: number of hosts
 
 # file directory path to mount private dirs
 dir_path = os.path.dirname(os.path.realpath(__file__))
-#mode = 1 (Aleatorio)
-#mode = 2 (x% do stake concentrado com y% dos participantes)
-#mode = 3 (stake dividido igualmente entre os participantes)
-#mode = 4 (stake concentrado em apenas um participante)
-#mode = 5 (x% do stake concentrado com y% dos participantes e distribuicao igual do stake)
+
 def testHostWithPrivateDirs(number=10):
     "Test bind mounts"
     topo = SingleSwitchTopo( number )
@@ -40,29 +36,30 @@ def testHostWithPrivateDirs(number=10):
     net.stop()
 
 def startServer(net,number):
-    stake = parameter.defineStake(number)
+    stake = parameter.numStake
     print(stake)
     """ Start node.py process passing all hosts ip addresses """
     j = 1
     for h in net.hosts:
-            stakeNode = []
-            for i in stake:
-                stakeNode = stakeNode + stake[i][j]
-            o = net.hosts[:]
-            o.remove(h)
-            ips = [x.IP() for x in o]
-            stakeNode = [str(x) for x in stakeNode]
-            shuffle(ips)
-            peers = ' '.join(ips)
-            stakeNode = ' '.join(stakeNode)
-            print(peers)
-            print(stakeNode)            
-            info('*** Blockchain node starting on %s\n' % h)
-            #if(h.IP() == '10.0.0.1'):
-            h.cmd('nohup python node.py -i', h.IP(), '-p 9000 --s %s --peers %s &' %(stakeNode, peers))
-            #else:
-            #    h.cmd('python node.py -i', h.IP(), '-p 9000 --s %s --peers %s &' %(stakeNode, peers))
-            j = j + 1           
+        stakeNode = []
+        node = hashlib.sha256(str(h.IP())).hexdigest()            
+        for i in stake:
+            #stakeNode = stakeNode + stake[i][j]
+            stakeNode = stakeNode + stake[i][node]
+
+        o = net.hosts[:]
+        o.remove(h)
+        ips = [x.IP() for x in o]
+        stakeNode = [str(x) for x in stakeNode]
+        shuffle(ips)
+        peers = ' '.join(ips)
+        stakeNode = ' '.join(stakeNode)
+        info('*** Blockchain node starting on %s\n' % h)
+        h.cmd('nohup python node.py -i', h.IP(), '-p 9000 --stake %s &' %(stakeNode))
+        #time.sleep(2)
+        #if(j == 1):
+        #    h.cmd('sudo nohup python transaction.py &')
+        j = j + 1
 
 def stopServer(hosts):
     """ Stop the node.py process through rpcclient """

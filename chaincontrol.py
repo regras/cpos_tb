@@ -7,24 +7,9 @@ import parameter
 import sqldb
 import threading
 import math
+#from itertools import combinations
 
-'''def removeLeaf(self,pos):
-    print("remove chain with head")
-    print(self.leaf[pos][0].leaf_head)
-    print("remove chain with prev_head")
-    print(self.leaf[pos][0].leaf_prev_head)
-    print("index")
-    print(self.leaf[pos][0].leaf_index)
-    print("hash")
-    print(self.leaf[pos][0].leaf_hash)
-    #sqldb.setLogFork(self.leaf[pos][0].leaf_head,'0')
-    #sqldb.setLogFork(self.leaf[pos][0].leaf_head, 0, 0, 0, self.leaf[pos][0].leaf_index, self.leaf[pos][0].leaf_hash)
-    status = sqldb.removeChain(self.leaf[pos][0].leaf_hash)
-    if(status):
-        print("chain removed with success")
-        del self.leaf[pos]
-    else:
-        print("chain not removed with success. Fork point not found.")'''
+
 def Combinations(m,n):
       # calcula o fatorial de m
     k = m
@@ -132,6 +117,42 @@ def probTree(r,x,z,blockchain):
     print(tree)
     return tree '''
 
+def checkcommitted(s,deltar):
+    numsuc = 0
+    for i in s:
+        numsuc = numsuc + s[i]
+    msuc = float(numsuc) / (deltar - 1)
+    if(deltar <= max(parameter.committed)):
+        if(msuc >= parameter.committed[deltar]):
+            committed = True
+        else:
+            committed = False
+    else:
+        if(msuc >= parameter.committed[max(parameter.committed)]):
+            committed = True
+        else:
+            committed = False
+    if(deltar <= max(parameter.sync_threshold)):
+        if(msuc >= parameter.sync_threshold[deltar]):
+            sync = True
+        else:
+            sync = False
+    else:
+        if(msuc >= parameter.sync_threshold[max(parameter.sync_threshold)]):
+            sync = True
+        else:
+            sync = False
+    return committed,sync
+    
+def reversion(z):
+    prob = 1
+    if(z):
+        for t in z:
+            prob = prob * z[t]
+        return prob
+    else:
+        return None 
+
 def reversionProb(r,x,z,blockchain):
     tree = probTree(r,x,z,blockchain)
     if(tree):
@@ -213,25 +234,28 @@ def bkpreversionProb(r,x,blockchain,z):
 
 def calcZr(h,numSuc):
     p = float(parameter.tal) / float(parameter.W)
-    if(numSuc == 0):
-        hpr = 1
-    else:
-        hpr = int(h,16) / float(2**256)
+    #if(numSuc == 0):
+    #    hpr = 1
+    #else:
+    #    hpr = int(h,16) / float(2**256)
     qr = 0
-    for k in range(0,numSuc+1):
-        comb = Combinations(parameter.W,k)
+    for k in range(0,numSuc+1):       
+        index = "("+str(parameter.W)+","+str(k)+")"
+        if(index in parameter.combination):
+            comb = parameter.combination[index]
+        else:
+            print("combinations not present in list")
+            comb = Combinations(parameter.W,k)
+        #comb = Combinations(parameter.W,k)
         qr = qr + comb*(p**k)*((1-p)**(parameter.W - k))
     qr = 1 - qr
-    #print("Qr: %f" %qr)
-    #print("hpr: %f" %hpr)
-    zr = hpr * qr
-    #print("zr: %f" %zr)
+    zr = qr
     return zr
 
-def updateChainView(idChain, block, subUser):
+def updateChainView(idChain, block):
     if(sqldb.blockIsMaxIndex(block.index)):
         print("IS MAXINDEX")
-        sqldb.writeChainLeaf(idChain, block, subUser)
+        sqldb.writeChainLeaf(idChain, block)
         return True
     elif(not sqldb.blockIsMaxIndex(block.index)):
         status,round = sqldb.verifyRoundBlock(block.index,block.round)
@@ -241,7 +265,7 @@ def updateChainView(idChain, block, subUser):
                 print("ISLEAF")
                 print("NOT MAXINDEX")
                 sqldb.removeAllBlocksHigh(block.index, block.proof_hash)
-                sqldb.writeChainLeaf(idChain, block, subUser)
+                sqldb.writeChainLeaf(idChain, block)
                 return True
             else:
                 return False
@@ -258,14 +282,14 @@ def updateChainView(idChain, block, subUser):
         print("not insert new block")
         return False
             
-def addBlockLeaf(block=None,subUser=None,sync=False):
+def addBlockLeaf(block=None,sync=False):
     #inserting block on the chain's top
     if(not sync):
         idChain = sqldb.getIdChain(block.prev_hash)
         print("idChain:")
         print(idChain)
         if(idChain):
-            status = updateChainView(idChain, block, subUser)
+            status = updateChainView(idChain, block)
             if(status):
                 print("new block inserted")
                 return True
@@ -276,3 +300,24 @@ def addBlockLeaf(block=None,subUser=None,sync=False):
             print("blockchain not found. not sync?")
             return False
         
+def checkMajorBlock(blocks,totalPeer):
+    for i in blocks:
+        proof_hash = i[0]
+        #stake = 0
+        votepeer = 0
+        peers_vote = []
+        existDif = False
+        for j in blocks:
+            if(j[0] == proof_hash):
+                #stake = stake + j[1]
+                votepeer = votepeer + 1
+                peers_vote = peers_vote + [j[1]]
+            else:
+                existDif = True
+        if votepeer >= float(0.50) * float(totalPeer):
+            return True, peers_vote
+        if not existDif:
+            return False, None
+    return False, None
+
+

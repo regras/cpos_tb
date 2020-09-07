@@ -30,8 +30,8 @@ def timetocreateblocks(node,stake):
             locked = True
 
         #if sqldb.getLastBlockIndex()==(100*count) and sqldb.getLastBlockIndex()>1:
+        node.acquireCommitBlock()        
         quantityBlocks = node.commitBlock(message=[lastBlockSimulation],t=5)
-        node.releaseCommitBlock()
         print("QUANTITY BLOCKS")
         print(quantityBlocks)
         if(quantityBlocks >= parameter.TEST):
@@ -42,7 +42,6 @@ def timetocreateblocks(node,stake):
             #print('dif', parameter.difficulty, 'timeout', parameter.timeout, time_result)
             locked = False
             lastForks, newBlocks = node.commitBlock(message=[start,end,lastForks,numBlocks],t=6)
-            node.releaseCommitBlock()
             #lastForks, newBlocks = calculation.calcParameters(start,end,lastForks, numBlocks)
             numBlocks = numBlocks + newBlocks
             print("numBlocks")
@@ -58,7 +57,8 @@ def timetocreateblocks(node,stake):
             time.sleep(1)
 
         else:
-            time.sleep(15)
+            node.releaseCommitBlock()
+            time.sleep(60)
     
     #results.close()
     #os.system("./blockchain-cli exit")

@@ -9,15 +9,17 @@ import leaf
 import parameter
 import datetime
 import time
+import hashlib
 from collections import deque, Mapping, defaultdict
 import pickle
 import chaincontrol
 from decimal import Decimal
+from random import randint
 logger = logging.getLogger(__name__)
+#txdatabaseLocation = 'blocks/transaction.db'
 databaseLocation = 'blocks/blockchain.db'
 
 # write methods work with block objects instead of tuple from sqlite db
-
 def dbConnect():
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
@@ -31,6 +33,8 @@ def dbConnect():
         tx text,
         arrive_time text,
         PRIMARY KEY (id, hash))""")
+    
+
     cursor.execute("""CREATE TABLE IF NOT EXISTS chain (
         id integer NOT NULL,
         round integer,
@@ -59,6 +63,24 @@ def dbConnect():
         numSuc integer,
         round_stable integer default 0,
         PRIMARY KEY (id,idChain))""")
+    
+    cursor.execute("""CREATE TABLE IF NOT EXISTS pool_transactions (
+        tx_hash text NOT NULL,
+        tx_prev_hash text NOT NULL,
+        prev_output integer NOT NULL,
+        input_address text NOT NULL,
+        value integer,
+        output_address text NOT NULL,
+        committed integer default 0,
+        choosen integer default 0,
+        PRIMARY KEY (tx_hash,tx_prev_hash,prev_output))""")
+    
+    cursor.execute(""" CREATE TABLE IF NOT EXISTS utxo_set (
+        tx_hash text NOT NULL,
+        output  integer NOT NULL,
+        output_address text NOT NULL,
+        value integer,
+        PRIMARY KEY(tx_hash,output))""")
 
     #cursor.execute("""CREATE TABLE IF NOT EXISTS log_mine (
     #  id text NOT NULL,
@@ -80,6 +102,20 @@ def dbConnect():
       endBlock integer default 0,
       startFork text default 0,
       endFork text default 0)""")
+    
+    cursor.execute("""CREATE TABLE IF NOT EXISTS arrived_block (
+      idAutoNum INTEGER PRIMARY KEY AUTOINCREMENT,
+      id INTEGER NOT NULL,
+      round integer,
+      arrive_time text,
+      node text,
+      prev_hash text,
+      hash text,
+      proof_hash text,
+      tx text,
+      status integer,
+      subuser integer,
+      UNIQUE (hash))""")
 
     cursor.execute("""CREATE TABLE IF NOT EXISTS log_block (
       idAutoNum INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -90,67 +126,198 @@ def dbConnect():
       prev_hash text,
       hash text,
       proof_hash text,
+      tx text,
       status integer,
-      numSuc integer,
-      UNIQUE (proof_hash))""")
-     
+      subuser integer,
+      UNIQUE (hash))""")
+
     db.commit()
     db.close()
 
-def reversionBlock(round):
+def isLeaf(index):
+    try:
+        db = sqlite3.connect(databaseLocation)
+        cursor = db.cursor()
+        cursor.execute("SELECT * FROM localChains WHERE id > %d" % index)
+        query = cursor.fetchone()
+        db.close()
+        if query:
+            return False
+        else:
+            return True
+    except Exception as e:
+        print(str(e))
+
+    return False
+
+def getBlockIntervalByRound(fround,lround):
+    try:
+        db = sqlite3.connect(databaseLocation)
+        cursor = db.cursor()
+        cursor.execute("SELECT * FROM localChains where round >= %d and round <= %d order by id asc" %(fround,lround))
+        queries = cursor.fetchall()
+        db.close()
+        return queries
+    except Exception as e:
+        print(str(e))
+
+def getBlockByRound(round):
+    try:
+        db = sqlite3.connect(databaseLocation)
+        cursor = db.cursor()
+        cursor.execute("SELECT * FROM localChains where round = %d" % round)
+        b = cursor.fetchone()
+        if(b):
+            return(dbtoBlock(b))
+        else:
+            return None
+    except Exception as e:
+        print(str(e))
+        
+def getLogBlock(hash):
+    try:
+        db = sqlite3.connect(databaseLocation)
+        cursor = db.cursor()
+        cursor.execute("SELECT * FROM log_block where hash = '%s'" % (hash))
+        b = cursor.fetchone()
+        if(b):
+            return(block.Block(b[1],b[5],b[2],b[4],b[3],b[6],b[8],b[10],b[7]))
+        else:
+            return None
+    except Exception as e:
+        print(str(e))
+    
+def checkSyncChain(lround,round):
     try:
         db = sqlite3.connect(databaseLocation)
         cursor = db.cursor()
         queries = None
-        blockchain = {}
-        z = {}
-        zr_0 = chaincontrol.calcZr(None,0)
-        cursor.execute("SELECT * from localChains where stable = 0 order by id asc")
+        #blockchain = {}
+        s = {}
+        #sr_0 = chaincontrol.calcZr(None,0)
+        cursor.execute("SELECT * FROM localChains WHERE stable = 0 AND round > %d and round < %d ORDER BY id ASC" %(lround, (round - parameter.roundTolerancy)))
         #cursor.execute("SELECT * from localChains where stable = 0 and id = (select min(id) from localChains where stable = 0) order by id asc")
         #query = cursor.fetchone()
         queries = cursor.fetchall()
         #if(query):
+        status = True
         for query in queries:
-            index_round = round - 1
-            cursor.execute("SELECT * from localChains t1 where not exists (select * from localChains t2 where t2.prev_hash = t1.hash)")
-            item = cursor.fetchone()
-            while(int(item[1]) >= int(query[1])):
-                #print("index block atual: %d" %int(query[1]))
-                #print("index block variando: %d" %int(item[1]))                
-                while(index_round > int(item[2])):
-                    #print("rodada variando: %d" %index_round)
-                    #print("rodada block atual: %d" %int(item[2]))
-                    z[index_round] = zr_0
-                    blockchain[index_round] = None
-                    index_round = index_round - 1
-                    #time.sleep(0.5)
-
-                if(index_round == int(item[2])):
-                    zr = chaincontrol.calcZr(item[12],item[13])
-                    z[index_round] = zr
-                    blockchain[index_round] = item[12]
-                    index_round = index_round - 1
-
-                #time.sleep(0.5)
-                cursor.execute("SELECT * from localChains where hash = '%s'" %item[3])
+            if(status):
+                status = False
+                #index_round = round - 1
+                index_round = (round - parameter.roundTolerancy) - 1
+                cursor.execute("SELECT * FROM localChains t1 WHERE t1.id = (SELECT MAX(id) FROM localChains WHERE round > %d AND round < %d)" %(lround, (round - parameter.roundTolerancy)))
+                #cursor.execute("SELECT * from localChains t1 where not exists (select * from localChains t2 where t2.prev_hash = t1.hash)")
                 item = cursor.fetchone()
+                while(item[1] >= query[1] and (index_round - int(query[2]) > 1)):
+                    #print("index block atual: %d" %int(query[1]))
+                    #print("index block variando: %d" %int(item[1]))                
+                    while(index_round > int(item[2])):
+                        #z[index_round] = zr_0
+                        s[index_round] = 0
+                        index_round = index_round - 1
 
-            print(z)
-            print(blockchain)
-            phr = chaincontrol.reversionProb(query[2],round,z,blockchain)
-            blockchain = {}
-            z = {}
-            phr = Decimal(phr)
-            print("PHR: ", phr)
-            if(phr <= Decimal(parameter.betha)):
-                #block stable
-                cursor.execute("UPDATE localChains set stable = 1, round_stable = %d where proof_hash = '%s'" %(round,query[12]))
-                db.commit()
-                print("BLOCK INDEX %d COMMITED" %query[1])
+                    if(index_round == int(item[2] and item[1] > query[1])):
+                        #zr = chaincontrol.calcZr(item[12],item[13])
+                        #z[index_round] = zr
+                        s[index_round] = item[13]
+                        index_round = index_round - 1
+
+                    #time.sleep(0.5)
+                    cursor.execute("SELECT * FROM localChains WHERE hash = '%s'" %item[3])
+                    item = cursor.fetchone()
+            
+    
+    except Exception as e:
+        print(str(e))
+
+def getCurrentSuc(lround,round):
+    try:
+        db = sqlite3.connect(databaseLocation)
+        cursor = db.cursor()
+        s = 0
+        cursor.execute("SELECT * FROM localChains where round >= %d and round <= %d" %(int(lround),int(round)))
+        queries = cursor.fetchall()
+        if queries:
+            for query in queries:
+                s = s + int(query[13])
+        db.close()
+        return s
+    except Exception as e:
+        print(str(e))
+        
+
+def reversionBlock(round, lround):
+    try:
+        db = sqlite3.connect(databaseLocation)
+        cursor = db.cursor()
+        queries = None
+        #blockchain = {}
+        s = {}
+        #sr_0 = chaincontrol.calcZr(None,0)
+        cursor.execute("SELECT * FROM localChains WHERE stable = 0 AND round > %d and round < %d ORDER BY id ASC" %(lround, (round - parameter.roundTolerancy)))
+        #cursor.execute("SELECT * from localChains where stable = 0 and id = (select min(id) from localChains where stable = 0) order by id asc")
+        #query = cursor.fetchone()
+        queries = cursor.fetchall()
+        #if(query):
+        status = True
+        for query in queries:
+            if(status):
+                status = False
+                #index_round = round - 1
+                index_round = (round - parameter.roundTolerancy) - 1
+                cursor.execute("SELECT * FROM localChains t1 WHERE t1.id = (SELECT MAX(id) FROM localChains WHERE round < %d)" %((round - parameter.roundTolerancy)))
+                #cursor.execute("SELECT * from localChains t1 where not exists (select * from localChains t2 where t2.prev_hash = t1.hash)")
+                item = cursor.fetchone()
+                while(item[1] >= query[1] and (index_round - int(query[2]) >= 1)):
+                    #print("index block atual: %d" %int(query[1]))
+                    #print("index block variando: %d" %int(item[1])) 
+                    print("query hash: ", query[4])
+                    print("lround: ", lround)
+                    print("item[2]: ", item[2])            
+                    print("index_round: ", index_round)  
+                    print("item[1]: ", item[1])
+                    print("query[1]: ", query[1])
+                    while(index_round > int(item[2])):
+                        print("index_round > int(item[2])")
+                        #z[index_round] = zr_0
+                        s[index_round] = 0
+                        index_round = index_round - 1
+
+                    if(index_round == int(item[2]) and (item[1] > query[1])):
+                        #zr = chaincontrol.calcZr(item[12],item[13])
+                        #z[index_round] = zr
+                        print("index_round == int(item[2])")
+                        s[index_round] = item[13]
+                        index_round = index_round - 1
+
+                    #time.sleep(0.5)
+                    cursor.execute("SELECT * FROM localChains WHERE hash = '%s'" %item[3])
+                    item = cursor.fetchone()
+                    if not item:
+                        return lround, False
+
+            deltar = (round - parameter.roundTolerancy) - query[2]
+            print("s: ",s)
+            print("deltar: ",deltar)
+            if(deltar >= 2):            
+                check,sync = chaincontrol.checkcommitted(s,deltar)
+                if(check):
+                    lround = query[2]
+                    cursor.execute("UPDATE localChains set stable = 1, round_stable = %d where hash = '%s'" %((round - parameter.roundTolerancy - 1),query[4]))
+                    db.commit()
+                    print("BLOCK INDEX %d COMMITED" %query[1])
+                else:
+                    if(not sync):
+                        return  lround, False
+                    else:
+                        break
             else:
                 break
+            del s[query[2] + 1]
+        
+        return lround,True
            
-
     except Exception as e:
         print(str(e))
         
@@ -284,11 +451,27 @@ def dbIsSameChain(blockHash, pointHash):
     db.close()
     return False
 
-def dbKnowBlock(blockHash):
+def knowLogBlock(hash):
+    try: 
+        db = sqlite3.connect(databaseLocation)
+        cursor = db.cursor()
+        cursor.execute("SELECT * FROM arrived_block WHERE hash = '%s'" % hash)
+        query = cursor.fetchone()
+        db.close()   
+        #print("QUERY: ", query)         
+        if(query):
+            return True
+        else:
+            return False
+    except Exception as e:
+        print(str(e))
+        return False
+
+def dbKnowBlock(hash):
     try:
         db = sqlite3.connect(databaseLocation)
         cursor = db.cursor()
-        cursor.execute("SELECT * from localChains WHERE hash = '%s'" % blockHash)
+        cursor.execute("SELECT * from localChains WHERE hash = '%s'" % hash)
         query = cursor.fetchone()
         if(query):
             db.close()
@@ -301,21 +484,42 @@ def dbKnowBlock(blockHash):
         return False
 
 def dbReqBlock(messages):
-    try:
-        blockHash = messages[0]
-        db = sqlite3.connect(databaseLocation)
-        cursor = db.cursor()
-        cursor.execute("SELECT * from localChains WHERE hash = '%s'" % blockHash)
+    #try:
+    role = messages[1]
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    if(role == 'majorblock'):
+        r = messages[0]
+        r = int(pickle.loads(r))
+        cursor.execute("SELECT * from localChains where id = (SELECT max(id) from localChains where round <= %d)" % r)
         query = cursor.fetchone()
+        db.close()
         if(query):
-            db.close()
-            return pickle.dumps(query)
-        else:
-            db.close()
+            return pickle.dumps(dbtoBlock(query),2)
+        else:            
             return None
-    except Exception as e:
-        print(str(e))
+
+    elif(role == 'allblocks'):
+        b = messages[0]
+        b = pickle.loads(b)
+        blocks = []
+        cursor.execute("SELECT * from log_block where prev_hash = '%s' and round = %d" %(b.prev_hash,b.round))
+        queries = cursor.fetchall()
+        db.close()
+        if(queries):
+            for query in queries:
+                blocks = blocks + [block.Block(query[1],query[5],query[2],query[4],query[3],query[6],query[8],query[10],query[7])]
+            return pickle.dumps(blocks,2)
         return None
+
+    elif(role == 'block'):
+        hash = messages[0]
+        hash = pickle.loads(hash)
+        return pickle.dumps(getLogBlock(hash),2)
+
+    #except Exception as e:
+    #    print(str(e))
+    return None
 
 #####end functions to sync
 
@@ -353,10 +557,13 @@ def checkActiveFork(numBlocks):
     else:
         return False
 
-def getBlock(hash):
+def getBlock(hash=None):
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
-    cursor.execute("SELECT * from localchains where hash = '%s'" % hash)
+    if(hash):
+        cursor.execute("SELECT * from localChains where hash = '%s'" % hash)       
+    else:
+        cursor.execute("SELECT * from localChains t1 where not exists(SELECT * from localChains t2 where t1.hash = t2.prev_hash)")      
     query = cursor.fetchone()
     if(query):
         return dbtoBlock(query)
@@ -514,31 +721,69 @@ def setLogFork(startBlock, endBlock, startFork, endFork):
 
     #    db.close()
     #    return False
-     
-def setLogBlock(b, accepted, subUser):
+def changeArrivedBlock(b,accepted):
+    if(b):
+        try:
+            db = sqlite3.connect(databaseLocation)
+            cursor = db.cursor()
+            cursor.execute("UPDATE arrived_block set status = %d where hash = '%s'" %(accepted, b.hash))
+            db.commit()
+            db.close()
+        except Exception as e:
+            print(str(e)) 
+
+def setArrivedBlock(b,accepted):    
+    if(b):
+        try:
+            db = sqlite3.connect(databaseLocation)
+            cursor = db.cursor()
+            cursor.execute("SELECT * from arrived_block where hash = '%s'" %b.hash)
+            query = cursor.fetchone()
+            if(not query):
+                cursor.execute('INSERT INTO arrived_block (id, round, arrive_time, node, prev_hash, hash,proof_hash,tx,status,subuser) VALUES (?,?,?,?,?,?,?,?,?,?)',(
+                    b.__dict__['index'],
+                    b.__dict__['round'],
+                    b.__dict__['arrive_time'],
+                    b.__dict__['node'],
+                    b.__dict__['prev_hash'],
+                    b.__dict__['hash'],
+                    b.__dict__['proof_hash'],
+                    b.__dict__['tx'],
+                    accepted,
+                    b.__dict__['subuser']))
+                db.commit()
+            db.close()
+        except sqlite3.IntegrityError:
+            logger.warning('db insert duplicated block on arrived_block')
+
+def setLogBlock(b, accepted):
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
     if(b):
         try:
-            cursor.execute('INSERT INTO log_block (id, round, arrive_time, node, prev_hash, hash,proof_hash,status,numSuc) VALUES (?,?,?,?,?,?,?,?,?)',(
-                b.__dict__['index'],
-                b.__dict__['round'],
-                b.__dict__['arrive_time'],
-                b.__dict__['node'],
-                b.__dict__['prev_hash'],
-                b.__dict__['hash'],
-                b.__dict__['proof_hash'],
-                accepted,
-                subUser))
-            db.commit()
-            #update LocalChain if received block proof_hash is different of localChain proof_hash
-            cursor.execute('SELECT * from localChains where round = %d' %b.round)
-            query=cursor.fetchone()
-            if(query):
-                if(query[12] != b.proof_hash):
-                    suc = query[13] + subUser
-                    cursor.execute("UPDATE localChains set numSuc = %d where proof_hash = '%s'" %(suc,query[12]))
-                    db.commit()
+            cursor.execute("SELECT * from log_block where hash = '%s'" %b.hash)
+            query = cursor.fetchone()
+            if(not query):
+                cursor.execute('INSERT INTO log_block (id, round, arrive_time, node, prev_hash, hash,proof_hash,tx,status,subuser) VALUES (?,?,?,?,?,?,?,?,?,?)',(
+                    b.__dict__['index'],
+                    b.__dict__['round'],
+                    b.__dict__['arrive_time'],
+                    b.__dict__['node'],
+                    b.__dict__['prev_hash'],
+                    b.__dict__['hash'],
+                    b.__dict__['proof_hash'],
+                    b.__dict__['tx'],
+                    accepted,
+                    b.__dict__['subuser']))
+                db.commit()
+                #update LocalChain if received block proof_hash is different of localChain proof_hash
+                cursor.execute('SELECT * from localChains where round = %d' %b.round)
+                query=cursor.fetchone()
+                if(query):
+                    if(query[4] != b.hash and b.prev_hash == query[3]):
+                        suc = query[13] + b.subuser
+                        cursor.execute("UPDATE localChains set numSuc = %d where hash = '%s'" %(suc,query[4]))
+                        db.commit()
 
         except sqlite3.IntegrityError:
             logger.warning('db insert duplicated block on log_block')
@@ -680,18 +925,18 @@ def writeBlock(b):
         db.commit()
         db.close()
 
-def writeChainLeaf(idChain,b, subUser,firstBlock=False):
+def writeChainLeaf(idChain,b,firstBlock=False):
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
     try:
         #update subUser on localChain Block if this block is other block on round r
-        cursor.execute("SELECT * from log_block where round = %d" %b.round)
+        cursor.execute("SELECT * from log_block where round = %d and prev_hash = '%s'" %(b.round, b.prev_hash))
         queries = cursor.fetchall()
         suc = 0
         if(queries):
             for query in queries:
-                suc = suc + query[9]        
-        suc = suc + subUser
+                suc = suc + query[10]        
+        #suc = suc + subUser
         if(firstBlock):
             stable = 1
         else:
@@ -742,7 +987,7 @@ def blockIsPriority(blockIndex,proof_hash):
         db.close()
         if(queries):
             for query in queries:
-                if(int(query[0],16) < int(proof_hash,16)):
+                if(int(query[0],16) <= int(proof_hash,16)):
                     return False
         return True
     except sqlite3.IntegrityError:
@@ -788,21 +1033,15 @@ def getLastBlock():
 def getAllKnowChains():
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
-    blocks = {}
+    #blocks = {}
     try:
-        cursor.execute('select * from localChains t1 where not exists(select prev_hash from localChains t2 where t1.hash == t2.prev_hash) group by t1.idChain')
-        queries = cursor.fetchall()
-        if(queries):
-            for query in queries:
-                if(blocks):
-                    i = max(blocks) + 1
-                else:
-                    i = 0
-                blocks[i] = []
-                blocks[i] = blocks[i] + [dbtoBlock(query)]
-                print(blocks)                    
-            db.close()
-            return blocks       
+        cursor.execute('select * from localChains where id = (select max(id) from localChains)')
+        #cursor.execute('select * from localChains t1 where not exists(select prev_hash from localChains t2 where t1.hash == t2.prev_hash) group by t1.idChain')
+        query = cursor.fetchone()
+        if(query):
+            return dbtoBlock(query)
+        else:
+            return None
     except sqlite3.IntegrityError:
         print("getAllKnowBlock Error")
 
@@ -837,9 +1076,9 @@ def createNewChain(block,subUser):
     query = cursor.fetchone()
     db.close()
     if query[0]:
-        writeChainLeaf(int(query[0]) + 1, block,subUser)        
+        writeChainLeaf(int(query[0]) + 1, block)        
     else:
-        writeChainLeaf(1, block,subUser,firstBlock=True)
+        writeChainLeaf(1, block,firstBlock=True)
     return True
 
 def blockIsMaxIndex(blockIndex):
@@ -931,6 +1170,7 @@ def blockQueryFork(messages):
 
 
 def blockQuery(messages):
+
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
     cursor.execute('SELECT * FROM chain WHERE id = ?', (messages[1],))
@@ -946,16 +1186,15 @@ def blockHashQuery(hash):
     db.close()
     return b
 
-def removeBlock(hash):
-    db = sqlite3.connect(databaseLocation)
-    cursor = db.cursor()
-    cursor.execute("SELECT fork FROM localChains WHERE hash = '%s'" % hash)
-    query = cursor.fetchone()
-    if(query):
-        if(query[0] == 0):
-            cursor.execute("DELETE FROM localChains WHERE hash = '%s'" % hash)
-    db.commit()
-    db.close()
+def removeBlock(index):
+    try:
+        db = sqlite3.connect(databaseLocation)
+        cursor = db.cursor()
+        cursor.execute("DELETE FROM localChains WHERE id = %d" % index)
+        db.commit()
+        db.close()
+    except Exception as e:
+        print(str(e))
 
 def removeChain(blockHash):
     removedBlocks = {}
@@ -1279,3 +1518,76 @@ def getallblocks():
 
     db.close()
     return tree
+
+########transactions database functions##############
+def firstTransactions():
+    #try:
+    #creating 2000 committed transactions
+    tx_hash = parameter.HASH_FIRST_TRANSACTION
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    for i in range(1,201):
+        value = randint(1,100)
+        address = hashlib.sha256(str(i)).hexdigest()
+        cursor.execute('INSERT INTO utxo_set VALUES (?,?,?,?)', (
+            tx_hash,
+            i,
+            address,
+            value))
+        #db.commit()
+        cursor.execute('INSERT INTO pool_transactions VALUES (?,?,?,?,?,?,?,?)', (
+            tx_hash,
+            -1,
+            i,
+            address,
+            value,
+            address,
+            1,
+            1))
+        db.commit()     
+    db.close()
+
+def createtx():
+    try:
+        db = sqlite3.connect(databaseLocation)
+        cursor = db.cursor()
+        value = randint(1,100)
+        cursor.execute('SELECT * FROM utxo_set t1 WHERE NOT EXISTS (SELECT * FROM pool_transactions t2 WHERE t2.tx_prev_hash = t1.tx_hash and t2.prev_output = t1.output and committed = 0) and t1.value >= %d LIMIT 1' %value)
+        query = cursor.fetchone()
+        if(query):
+            address = hashlib.sha256(str(randint(1,200))).hexdigest()
+            if((query[3] - value) > 0):
+                change = query[3] - value
+                tx_header = str(query[0]) + str(query[1]) + str(query[2]) + str(change) + str(query[2])            
+                tx_hash = hashlib.sha256(str(tx_header)).hexdigest()
+                cursor.execute('INSERT INTO pool_transactions VALUES (?,?,?,?,?,?,?,?)', (
+                tx_hash,
+                query[0],
+                query[1],
+                query[2],
+                change,
+                query[2],
+                0,
+                0))
+            db.commit()
+            tx = [[tx_hash,query[0],query[1],query[2],change,query[2]]]
+            tx_header = str(query[0]) + str(query[1]) + str(query[2]) + str(value) + str(address)
+            tx_hash = hashlib.sha256(str(tx_header)).hexdigest()
+            cursor.execute('INSERT INTO pool_transactions VALUES (?,?,?,?,?,?,?,?)', (
+                tx_hash,
+                query[0],
+                query[1],
+                query[2],
+                value,
+                address,
+                0,
+                0))
+            db.commit()
+            tx = tx + [[tx_hash,query[0],query[1],query[2],value,address]]
+        db.close()
+        return tx
+    except Exception as e:
+        print(str(e))
+
+
+
