@@ -20,7 +20,7 @@ import hashlib
 # file directory path to mount private dirs
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-def testHostWithPrivateDirs(number=10):
+def testHostWithPrivateDirs(number=2):
     "Test bind mounts"
     topo = SingleSwitchTopo( number )
     privateDirs = privateDirs=[ (dir_path+'/blocks',
@@ -30,7 +30,7 @@ def testHostWithPrivateDirs(number=10):
                     privateDirs=privateDirs )
     net = Mininet( topo=topo, host=host )
     net.start()
-    startServer(net,number)
+    #startServer(net,number)
     CLI( net )
     stopServer(net.hosts)
     net.stop()

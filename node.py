@@ -131,8 +131,8 @@ class Node(object):
 
         #self.msg_arrivals_out_order = {}
         #self.inserted_out_order = {}
-        index = parameter.peers.index(self.ipaddr)
-        self.delay = exponential_latency(parameter.AVG_LATENCY[index])
+        #index = parameter.peers.index(self.ipaddr)
+        #self.delay = exponential_latency(parameter.AVG_LATENCY[index])
 
     def restart(self):
         self.router.setsockopt(zmq.LINGER,0)
@@ -333,6 +333,12 @@ class Node(object):
             limitP = peer + pPeers
         else:
             limitP = parameter.k
+        
+        if(ipaddr in trust):
+            for i in trust:
+                if(i != ipaddr):
+                    self.connectPeers.appendleft(i)
+                    peer = peer + 1
 
         while(peer < limitP):
             #print("peer: ", peer)
@@ -396,13 +402,13 @@ class Node(object):
         
         if(firstC):
             #inform others peers that connected process is over
-            fileName = 'allnodeconnected.txt'
+            fileName = '/datavolume/allnodeconnected.txt'
             results = open(fileName, 'a')
             results.write(str(ipaddr) + '\n')
             results.close()
 
             #check if all peers was connected
-            fileName = 'allnodeconnected.txt'
+            fileName = '/datavolume/allnodeconnected.txt'
             if(os.path.isfile(fileName)):
                 status = False
                 while(not status):
@@ -419,10 +425,12 @@ class Node(object):
 
 #######start all threads after connect neighbor######
     def startThreads(self,stakeList):
+
         # Thread to listen broadcast messages
         listen_thread = threading.Thread(name='PUB/SUB', target=self.listen)
         listen_thread.start()
-        self.threads.append(listen_thread)
+        self.threads.append(listen_thread)    
+
 
         listenInsert_thread = threading.Thread(name='listenInsert', target=self.listenInsert)
         listenInsert_thread.start()
@@ -432,10 +440,27 @@ class Node(object):
         sync_thread = threading.Thread(name='sync', target=self.syncNode)
         sync_thread.start()
         self.threads.append(sync_thread)
+
+        #start Mine
+        nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
+        currentRound =  int(math.floor((float(nowTime) - float(parameter.GEN_ARRIVE_TIME)) / parameter.timeout))                           
+        if(not self.startMine):
+            self.miner_thread = threading.Thread(name='Miner', target=self.mine)
+            self.threads.append(self.miner_thread)
+            self.startMine = True
+
+            self.startround = currentRound + 1
+            self.miner_thread.start()
+        currentRound = parameter.timeout * currentRound                
+        print("Sleeping time: ", parameter.timeout - ((nowTime - parameter.GEN_ARRIVE_TIME) - currentRound))
+        time.sleep(parameter.timeout - ((nowTime - parameter.GEN_ARRIVE_TIME) - currentRound))                
+        self.start.set()
+        self.f.set()
+                
         
-        send_block_thread = threading.Thread(name='send_block',target=self.send_block)
-        send_block_thread.start()
-        self.threads.append(send_block_thread)
+        #send_block_thread = threading.Thread(name='send_block',target=self.send_block)
+        #send_block_thread.start()
+        #self.threads.append(send_block_thread)
 
         #thread to count stable blocks
         #stableBlock_thread = threading.Thread(name='stableBlock', target=self.stableBlock)
@@ -452,8 +477,8 @@ class Node(object):
         #call timetocreateblocks function to automatic simulation
         #print('waiting %f seconds to sync the start' %(360 - (nowTime - float(time.mktime(datetime.datetime.now().timetuple())))))
         #time.sleep(360 - (nowTime - float(time.mktime(datetime.datetime.now().timetuple()))))
-        uniTest_thread = threading.Thread(name='uniTest', target=uni_test.timetocreateblocks, kwargs={'node':self,'stake':stakeList})
-        uniTest_thread.start()
+        #uniTest_thread = threading.Thread(name='uniTest', target=uni_test.timetocreateblocks, kwargs={'node':self,'stake':stakeList})
+        #uniTest_thread.start()
 
 #######end threads connecting ############ 
 
@@ -706,7 +731,7 @@ class Node(object):
             return True, sumsuc     
         return False  
 
-    def send_block(self):
+    '''def send_block(self):
         delay = int(time.mktime(datetime.datetime.now().timetuple()))
         nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
         while True and not self.k.is_set():
@@ -745,10 +770,10 @@ class Node(object):
             #print("NEXT DELAY: ", int(time.mktime(datetime.datetime.now().timetuple())))            
             nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
             delay = delay + 1
-            #print("DELAY: ", delay)
+            #print("DELAY: ", delay)'''
             
 
-    def insertNewBlock(self,message):
+    '''def insertNewBlock(self,message):
         ip = message[0]
         stake = message[1]
         block = message[2]
@@ -762,7 +787,7 @@ class Node(object):
         else:
             index = max(self.send_time[delay]) + 1
         #self.send_time[time][peers][index] = {}
-        self.send_time[delay][index] = [ip,stake,block]
+        self.send_time[delay][index] = [ip,stake,block]'''
    
     def listen(self):
         self.bind(self.psocket)    
@@ -776,31 +801,33 @@ class Node(object):
 ##                  newChain = False 
                     #serialize
                     b = pickle.loads(block_recv)
+                    print("NEW BLOCK: ", b.hash)
+                    b.arrive_time = float(time.mktime(datetime.datetime.now().timetuple()))
                     ##logging.info("Got block %s miner %s" % (b.hash, ip))
                     status = self.commitBlock(message=[b.hash],t = 15)                             
                     if(not status): 
-                        #if(validations.validateExpectedLocalRound(b)):
+                        if(validations.validateExpectedLocalRound(b)):
                         #    print("####LISTEN####")
                         #    print("LISTEN TIME: ", int(time.mktime(datetime.datetime.now().timetuple()))) 
                         #    print("HASH BLOCk: ", b.hash)                   
                         #    print("##END LISTEN##")
                         #    #print("hash: ", b.hash)
-                        #    pos = b.index
-                        #    if(pos not in self.msg_arrivals):
-                        #        self.msg_arrivals[pos] = {}
+                            pos = b.index
+                            if(pos not in self.msg_arrivals):
+                                self.msg_arrivals[pos] = {}
 
-                        #    self.msg_arrivals[pos][b.node] = []
-                        #    self.msg_arrivals[pos][b.node].append(b)
-                        #    self.msg_arrivals[pos][b.node].append(ip)
-                        #    self.msg_arrivals[pos][b.node].append(user_stake)
-                        #    sqldb.setLogBlock(b,1) 
-                        #else:
-                        #    print("BLOCK IS TOO LATE!")                        
+                            self.msg_arrivals[pos][b.node] = []
+                            self.msg_arrivals[pos][b.node].append(b)
+                            self.msg_arrivals[pos][b.node].append(ip)
+                            self.msg_arrivals[pos][b.node].append(user_stake)
+                            sqldb.setLogBlock(b,1) 
+                        else:
+                            print("BLOCK IS TOO LATE!")                        
                         sqldb.setArrivedBlock(b,1)                                                                                                                      
-                        self.insertNewBlock(message=[ip, str(user_stake), b])
-                        #self.semaphore.acquire()
-                        #self.listen_signal.set()                        
-                        #self.semaphore.release()                        
+                        #self.insertNewBlock(message=[ip, str(user_stake), b])
+                        self.semaphore.acquire()
+                        self.listen_signal.set()                        
+                        self.semaphore.release()                        
                         self.psocket.send_multipart([consensus.MSG_BLOCK, ip, str(user_stake), pickle.dumps(b, 2)])
                         
                     #self.semaphore.release()
@@ -821,6 +848,7 @@ class Node(object):
             self.listen_signal.wait()          
             #if (self.msg_arrivals and not self.threadSync.is_set()):
             self.semaphore.acquire()
+            print("CALL LISTEN FUNCTION")
             if(not self.threadSync.is_set()):                
                 self.f.clear()                
                 for i, msg in sorted(self.msg_arrivals.items(), key=itemgetter(1)):
@@ -1561,10 +1589,9 @@ class Node(object):
                 reply = consensus.handleMessages(self.bchain, messages,self)
             #self.semaphore.release()
             self.repsocket.send_multipart([self.ipaddr, pickle.dumps(reply, 2)])
-
     def rpcServer(self, ip='127.0.0.1', port=9999):
         """ RPC-like server to interact with rpcclient.py """
-        self.bind(self.rpcsocket, ip, port)
+        self.bind(self.rpcsocket,port=port)
         time.sleep(1)
         while True:
             try:
@@ -1596,6 +1623,21 @@ class Node(object):
                 self.rpcsocket.send_string(m)
             elif cmd == rpc.MSG_PEERS:
                 self.rpcsocket.send_pyobj(self.getPeers())
+            elif cmd == rpc.MSG_SHOWPEERS:
+                p = []
+                for item in self.peers:
+                    p = p + [item['ipaddr']]
+                self.rpcsocket.send_pyobj(p)
+            elif cmd == rpc.MSG_CONNECT:
+                self.rpcsocket.send_string('Starting neighbor connect...')
+                #thread that control neighbors connecting
+                msg_start_peers = threading.Thread(name='neighbors', target=self.neighbors, kwargs={'ipaddr':self.ipaddr})
+                msg_start_peers.start()
+                self.threads.append(msg_start_peers)
+            elif cmd == rpc.MSG_STAKE:
+                self.rpcsocket.send_string('setting node stake...')
+                stake = messages[1]
+                self.setStake(stake)                  
             elif cmd == rpc.MSG_START:
                 self.rpcsocket.send_string('Starting mining...')
                 nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
@@ -1610,6 +1652,7 @@ class Node(object):
                     self.miner_thread.start()
                 
                 #current round time
+                currentRound =  int(math.floor((float(nowTime) - float(parameter.GEN_ARRIVE_TIME)) / parameter.timeout))                    
                 currentRound = parameter.timeout * currentRound                
                 print("Sleeping time: ", parameter.timeout - ((nowTime - parameter.GEN_ARRIVE_TIME) - currentRound))
                 time.sleep(parameter.timeout - ((nowTime - parameter.GEN_ARRIVE_TIME) - currentRound))                
@@ -1899,6 +1942,8 @@ def main():
     
     
     #n = Node(args.ipaddr, args.port)
+    print("args.ipaddr:", args.ipaddr)
+    print("args.port:",args.port)
     n = Node(args.ipaddr, args.port)
     n.threads = []
     n.setCons(cons)
@@ -1920,7 +1965,7 @@ def main():
     #get stake as a list 
     if args.stake:
         stakeList = args.stake if isinstance(args.stake, list) else [args.stake]
-        #n.setStake(stakeList[0])
+        n.setStake(stakeList[0])
    
 
     # Connect and check own node database
@@ -1933,10 +1978,20 @@ def main():
     msg_thread.start()
     n.threads.append(msg_thread)
 
-    #thread that control neighbors connecting
-    msg_start_peers = threading.Thread(name='neighbors', target=n.neighbors, kwargs={'ipaddr':args.ipaddr,'stakeList':stakeList})
-    msg_start_peers.start()
-    n.threads.append(msg_start_peers)         
+    # Thread to listen broadcast messages
+    #listen_thread = threading.Thread(name='PUB/SUB', target=n.listen)
+    #listen_thread.start()
+    #n.threads.append(listen_thread)    
+
+    #listenInsert_thread = threading.Thread(name='listenInsert', target=n.listenInsert)
+    #listenInsert_thread.start()
+    #n.threads.append(listenInsert_thread)
+        
+    # Thread to Sync node
+    #sync_thread = threading.Thread(name='sync', target=n.syncNode)
+    #sync_thread.start()
+    #n.threads.append(sync_thread)
+          
         
     # Miner thread    
     if args.miner:

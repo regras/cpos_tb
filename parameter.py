@@ -42,8 +42,8 @@ def TrustandPeers():
 
     contIPs = 0
     for i in range(0,cont+2):
-        for j in range(1,256):
-            trusted=trusted+['10.0.'+str(i)+'.'+str(j)]
+        for j in range(3,256):
+            trusted=trusted+['10.1.'+str(i)+'.'+str(j)]
             contIPs=contIPs+1
             if(contIPs == trust):
                 break
@@ -64,8 +64,8 @@ def TrustandPeers():
     contIPs = 0
     #print cont
     for i in range(0,cont+2):
-        for j in range(1,256):
-            peers=peers+['10.0.'+str(i)+'.'+str(j)]
+        for j in range(3,256):
+            peers=peers+['10.1.'+str(i)+'.'+str(j)]
             contIPs=contIPs+1
             if(contIPs == nodes):
                 break
@@ -76,7 +76,7 @@ def TrustandPeers():
 
 def comb(tal):
     combi = {}
-    for k in range(0,tal+201):
+    for k in range(0,tal+31):
         index = "("+str(W)+","+str(k)+")"
         combi[index] = chaincontrol.Combinations(W,k)
     return combi
@@ -248,10 +248,10 @@ txround = 1000
 
 difficulty = float(math.log(W,2) - math.log(tal,2)) 
 
-nodes = 10 #num nodes
+nodes = 2 #num nodes
 
-k = 3 #fraction of connected peers
-trust = 4 #fraction of trust nodes
+k = 1 #fraction of connected peers
+trust = 2 #fraction of trust nodes
 theta = 0.50 #threshold
 
 trusted,peers = TrustandPeers()

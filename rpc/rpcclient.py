@@ -56,7 +56,20 @@ exit                Terminate and exit the node.py program running
                     print(b)
             elif MSG_PEERS == sys.argv[1]:
                 reqsocket.send(sys.argv[1])
-                print(reqsocket.recv_pyobj())
+                print(reqsocket.recv_string())
+            elif MSG_CONNECT == sys.argv[1]:
+                reqsocket.send(sys.argv[1])
+                print(reqsocket.recv_string())
+            elif MSG_SHOWPEERS == sys.argv[1]:
+                reqsocket.send(sys.argv[1])
+                peers = reqsocket.recv_pyobj()
+                print("Node Peers: \n")
+                for i in peers:
+                    print(i)
+                    print("\n")
+            elif MSG_STAKE == sys.argv[1]:
+                reqsocket.send_multipart([sys.argv[1], sys.argv[2]])
+                print(reqsocket.recv_string()) 
             elif MSG_START == sys.argv[1]:
                 reqsocket.send(sys.argv[1])
                 print(reqsocket.recv_string())
