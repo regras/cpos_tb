@@ -25,8 +25,6 @@ MSG_REQBLOCKS = 'reqblocks'
 MSG_REQPEER = 'reqpeers'
 MSG_TX = 'transaction'
 
-
-
 def handleMessages(bc, messages, node=None):
     cmd = messages[0] if isinstance(messages, list) else str(messages)
     cmd = cmd.lower()
@@ -46,6 +44,8 @@ def handleMessages(bc, messages, node=None):
         return sqldb.dbReqBlocks([messages[1], messages[2], messages[3]])
     elif cmd == MSG_ALLCHAIN:
         return sqldb.dbGetAllChain([messages[1]])
+    elif cmd == MSG_TX:
+        return sqldb.dbAddTx(messages[1])
     elif cmd == MSG_REQBLOCK:
         return sqldb.dbReqBlock([messages[1],messages[2]])
     elif cmd == MSG_REQPEER:

@@ -42,8 +42,8 @@ def TrustandPeers():
 
     contIPs = 0
     for i in range(0,cont+2):
-        for j in range(3,256):
-            trusted=trusted+['10.1.'+str(i)+'.'+str(j)]
+        for j in range(1,256):
+            trusted=trusted+['10.0.'+str(i)+'.'+str(j)]
             contIPs=contIPs+1
             if(contIPs == trust):
                 break
@@ -64,8 +64,8 @@ def TrustandPeers():
     contIPs = 0
     #print cont
     for i in range(0,cont+2):
-        for j in range(3,256):
-            peers=peers+['10.1.'+str(i)+'.'+str(j)]
+        for j in range(1,256):
+            peers=peers+['10.0.'+str(i)+'.'+str(j)]
             contIPs=contIPs+1
             if(contIPs == nodes):
                 break
@@ -81,6 +81,20 @@ def comb(tal):
         combi[index] = chaincontrol.Combinations(W,k)
     return combi
 
+def firstCoinsValue():
+    values = []
+    with open("firstblocks") as file:
+        for line in file:          
+            values = values + [line]
+    return values
+
+def bPayload():
+    values = None
+    file = open('tx.txt', mode='r')
+    values = file.read()
+    file.close()
+    return values
+    
 def defineStake(W):
     #mode = 1 (Aleatorio)
     #mode = 2 (x% do stake concentrado com y% dos participantes)
@@ -238,7 +252,7 @@ TEST = 100 #size of auto test
 
 W = 10000 #all network coins
 
-q = 0 #attackers probability
+q = 0.5 #attackers probability
 
 hW = int(W * float(1 - q)) #honest coins
 
@@ -264,10 +278,11 @@ numStake = defineStake(hW)
 #some combinations
 combination = comb(tal)
         
-#calc expected committed block rate lambda
-#q = chaincontrol.calcZr(0,tal)
-#eround = int(math.ceil(float(math.log(epsilon,10)) / math.log(q,10)))
-#ksi = 0
+#define first coins values
+values = firstCoinsValue()
+
+#block payload
+pblock = bPayload()
 
 #calc committed expected per round and sync_threshold
 committed,sync_threshold = structCommitted(tal)

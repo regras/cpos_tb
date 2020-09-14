@@ -1,20 +1,14 @@
-version: 3
+version: "3.1"
 services:
   ppos:
-    image: diegofgm/martins/ppos1.0
-    networks: 
-      iiot
+    image: diegofgm/martins:ppos1.0
+    networks:
+      - netppos
     deploy:
       replicas: 2
-      mode: global
-      placement:
-        constraint: [node.role != manager]
-    environment:
-      SLAVE=true
-    mount:
-      source=datavolume
-      target=/datavolume
+    volumes:
+      - "/mnt/:/datavolume/"
 
 networks:
-  iiot:
-    external: true
+  netppos:
+     external: true

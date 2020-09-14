@@ -6,30 +6,10 @@ import os
 import parameter
 import math
 
-def endwithoutreversion(node):
-    ipaddr = str(node.getNodeIp())
-    fileName = 'sync_results_'+ipaddr+'.txt'
-    if(os.path.isfile(fileName)):
-        results = open(fileName, 'a')
-    results.write('#################################################\n')
-    results.close()
+def newReversion(round,lastround):
+    return sqldb.insertReversion(round,lastround)
 
-def newReversion(node,round,lastround):
-    ipaddr = str(node.getNodeIp())
-    fileName = 'sync_results_'+ipaddr+'.txt'
-    if(os.path.isfile(fileName)):
-        results = open(fileName, 'a')
-    else:
-        results = open(fileName, 'a')
-        results.write('################Analise Reversao longo alcance################\n')
-
-    results.write('Rodada de inicio da ressincronizacao: '+(str(round))+'\n'
-    + 'Rodada final da ressincronizacao: '+(str(lastround))+'\n')    
-    results.close()
-
-def calcReversionLenght(node,fblock,lblock):
-    ipaddr = str(node.getNodeIp())
-    fileName = 'sync_results_'+ipaddr+'.txt'
+def addBlocksReversion(node,fblock,lblock,idreversion):
     blocks = sqldb.getBlockIntervalByRound(fblock.round,lblock.round)    
     if(os.path.isfile(fileName)):
         results = open(fileName, 'a')

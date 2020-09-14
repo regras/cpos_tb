@@ -13,12 +13,13 @@ class StopException(Exception):
 class Transaction(object): 
     
     """ Transaction class """
-    def __init__(self,port = 9000):
+    def __init__(self,node_ipaddr = '127.0.0.1', port = 9000):
         self.ctx = zmq.Context.instance()
         self.poller = zmq.Poller()
         self.router = self.ctx.socket(zmq.REQ)
         self.poller.register(self.router, zmq.POLLIN)
         self.port = port
+        self.node_ipaddr = node_ipaddr
     
     def sendtx(self, tx, address):
         m = None
@@ -41,18 +42,17 @@ class Transaction(object):
         txtime = float(parameter.txround) / parameter.timeout             
         while True:
             apeer = peers[randint(1,len(peers)-1)]
-            tx = sqldb.createtx()
+            tx = sqldb.createtx(self.node_ipaddr)
             tx = pickle.dumps(tx,2)
             if(tx):
                 self.sendtx(tx,apeer) 
             time.sleep(txtime)
 
 def main():
-    sqldb.firstTransactions()
     tx = Transaction()
     tx_thread = threading.Thread(name='tx_thread',target=tx.startGenTransaction)
     tx_thread.start()
     
 if __name__ == '__main__':
-    main()
+    main()'''
         
