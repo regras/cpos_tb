@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # bc_pos
 A blockchain testbed to evaluate PoS consensus
 
@@ -87,3 +88,7 @@ add block with index X and round Y
 stop node process
 - `-h` `--help`\
 help
+=======
+# ppos_tb
+Probabilistic Proof-of-Stake consensus protocol testbed
+>>>>>>> 2625f63ef9c4850139f24e175bdc929c87448889
