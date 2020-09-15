@@ -408,13 +408,14 @@ class Node(object):
         
         if(firstC and self.fmine):
             #inform others peers that connected process is over
-            fileName = 'allnodeconnected.txt'
+            fileName = '/datavolume/allnodeconnected.txt'
             results = open(fileName, 'a')
             results.write(str(ipaddr) + '\n')
             results.close()
 
+        if(firstC):
             #check if all peers was connected change to /datavolume/allnodeconnected.txt
-            fileName = 'allnodeconnected.txt'
+            fileName = '/datavolume/allnodeconnected.txt'
             if(os.path.isfile(fileName)):
                 status = False
                 while(not status):
@@ -810,7 +811,6 @@ class Node(object):
                     #print("NEW BLOCK FROM: ", ip)
                     if(ip != self.ipaddr):
                         b = pickle.loads(block_recv)
-                        print("NEW BLOCK: ", b.hash)
                         b.arrive_time = float(time.mktime(datetime.datetime.now().timetuple()))
                         ##logging.info("Got block %s miner %s" % (b.hash, ip))
                         status = self.commitBlock(message=[b.hash],t = 15)                             

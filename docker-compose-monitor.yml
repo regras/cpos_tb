@@ -1,0 +1,15 @@
+version: "3.1"
+services:
+  monitor:
+      image: diegofgm/martins:ppos1.0
+      depends_on:
+        - ppos    
+      networks:
+        - netppos
+      deploy:
+        replicas: 1
+      volumes:
+        - "/mnt/:/datavolume/"
+networks:
+  netppos:
+     external: true  
