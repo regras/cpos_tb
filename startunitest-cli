@@ -1,0 +1,2 @@
+#!/bin/bash
+sudo python uni_test.py & > stdout.log 2>stderr.log
