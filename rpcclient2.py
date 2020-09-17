@@ -59,7 +59,7 @@ exit                Terminate and exit the node.py program running
                         reqsocket.send(MSG_CONNECT)
                         print(reqsocket.recv_string())
 
-                        time.sleep(2)
+                        #time.sleep(2)
                         #stake node
                         h = hashlib.sha256(str(peers[i])).hexdigest()            
                         s = stake[1][h][0]            
@@ -77,9 +77,11 @@ exit                Terminate and exit the node.py program running
                 callsync = 0
                 callsyncrev = 0
                 numrevblock = 0
-                numblocks = 0
+                receivedblocks = 0
                 numround = 0
                 numblockstable = 0
+                lateblocks = 0
+                numblocks = 0
                 if(len(sys.argv) == 3):
                     peers = parameter.peers
                     i = 0               
@@ -96,21 +98,25 @@ exit                Terminate and exit the node.py program running
                         callsync = callsync + reply[1]
                         callsyncrev = callsyncrev + reply[2]
                         numrevblock = numrevblock + reply[3]
-                        numblocks = numblocks + reply[4]
+                        receivedblocks = receivedblocks + reply[4]
                         numround = int(reply[5])
                         numblockstable = int(reply[6])
+                        lateblocks = lateblocks + int(reply[7])
+                        numblocks = int(reply[8])
                         i = i + 1
                     if(len(peers) > 0):
                         avgconf = avgconf / float(len(peers))
                         print("block confirmation average in the network view (block/round): %f \n" % avgconf)
-                    print("Confirmation Blocks number: %d" %numblockstable)
+                    print("Confirmation Blocks number: %d\n" %numblockstable)
+                    print("produced blocks: %d \n" %numblocks)
                     print("sync function calls number in the network view: %d \n" % callsync)
                     print("Reversions number in the network view: %d \n" % callsyncrev)
                     print("Reversed blocks number in the network view: %d \n" % numrevblock)
                     if(callsyncrev > 0):
                         print("Reversed blocks number average in the network view (Reversed blocks number / revertion): %f \n" % (float(numrevblock) / callsyncrev))
-                    print("Received blocks number in the network view: %d \n" % numblocks)
-                    print("Round number: %d " % numround)
+                    print("Received blocks number: %d \n" % receivedblocks)
+                    print("Round number: %d \n" % numround)
+                    print("late blocks number: %d \n" % lateblocks)
 
                 elif(len(sys.argv) > 3):
                     ctx = zmq.Context.instance()
@@ -125,19 +131,23 @@ exit                Terminate and exit the node.py program running
                     callsync = reply[1]
                     callsyncrev = reply[2]
                     numrevblock = reply[3]
-                    numblocks = reply[4]
+                    receivedblocks = reply[4]
                     numround = reply[5]
+                    numblockstable = int(reply[6])
+                    lateblocks = int(reply[7])
+                    numblocks = int(reply[8])
                     
                     print("Block confirmation average (block/round): %f \n" % avgconf)
                     print("Confirmation Blocks number: %d" %numblockstable)
+                    print("produced blocks: %d \n" %numblocks)
                     print("Sync function calls number: %d \n" % callsync)
                     print("Reversions number: %d \n" % callsyncrev)
                     print("Reversed blocks number: %d \n" % numrevblock)
                     if(callsyncrev > 0):
                         print("Reversed blocks number average (Reversed blocks number / revertion): %f \n" % (float(numrevblock) / callsyncrev))
-                    print("Received blocks number : %d \n" % numblocks)
-                    print("Round number: %d " % numround)                                       
-
+                    print("Received blocks number : %d \n" % receivedblocks)
+                    print("Round number: %d \n" % numround)                                                            
+                    print("late blocks number: %d \n" % lateblocks)
                 else:
                     print("eplorer command failed")
 

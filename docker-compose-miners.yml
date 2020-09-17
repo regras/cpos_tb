@@ -1,14 +1,8 @@
 version: "3.1"
 services:
   ppos:
-    image: diegofgm/martins:ppos1.0
-    networks:
-      - netppos
+    image: diegofgm/martins:ppos1.0   
     deploy:
-      replicas: 5
+      replicas: 2
     volumes:
       - "/mnt/:/datavolume/"  
-  
-networks:
-  netppos:
-     external: true

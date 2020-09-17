@@ -62,6 +62,7 @@ class Node(object):
         self.cons = None
         self.firstsync = 0
         self.lround = 0
+        self.commit = 1
         # ZMQ attributes
         self.ctx = zmq.Context.instance()
         self.poller = zmq.Poller()
@@ -363,7 +364,7 @@ class Node(object):
             #print("distance list", distances)
             for i, msg in sorted(distances.items(), key=itemgetter(0)):
                 if(int(i) <= float(parameter.theta * (2**256 - 1))):
-                    if(peer < parameter.k):
+                    if(peer < limitP):
                         #status = False
                         if(self.trusted()):
                             status = self.peeringRequest(salt,msg)
@@ -391,7 +392,10 @@ class Node(object):
                                     self.connectPeers.appendleft(msg)
                                     peer = peer + 1
                             
-            if(peer >= parameter.k):
+                    else:
+                        break
+
+            if(peer >= limitP):
                 break
 
             print("dif time: ", parameter.timeout - (time.mktime(datetime.datetime.now().timetuple()) - nowTime))
@@ -416,15 +420,15 @@ class Node(object):
         if(firstC):
             #check if all peers was connected change to /datavolume/allnodeconnected.txt
             fileName = '/datavolume/allnodeconnected.txt'
-            if(os.path.isfile(fileName)):
-                status = False
-                while(not status):
+            status = False
+            while(not status):
+                if(os.path.isfile(fileName)):                
                     results = open(fileName, 'r')
                     read = results.readlines()
                     if len(read) >= parameter.nodes:
                         status = True
                     results.close()
-                    time.sleep(1)
+                time.sleep(1)
 
             self.startThreads(stakeList)       
                     
@@ -514,12 +518,14 @@ class Node(object):
 
             self.semaphore.acquire()                                       
             print("STABLE ROUND: ", currentRound)
-            self.lround,sync = sqldb.reversionBlock(currentRound,self.lround)
+            self.lround,sync,self.commit = sqldb.reversionBlock(currentRound,self.lround,self.commit)
             if(not sync):
                 self.lastRound = currentRound
                 self.resync = 0
                 self.threadSync.set()
                 #self.minecontrol.clear()
+            if(self.commit > parameter.TEST):
+                self.start.clear()
             self.semaphore.release()
             #else:
             #print("SLEEP TIME: ", (parameter.timeout - (float(time.mktime(datetime.datetime.now().timetuple())) - nowTime)))
@@ -578,7 +584,7 @@ class Node(object):
                         #self.insertNewBlock(message=[self.ipaddr, str(self.stake), new_block])                      
                         try:
                             values = parameter.pblock    
-                            self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, str(self.stake), pickle.dumps(new_block, 2),pickle.dumps(values, 2)])                    
+                            self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, str(self.stake), pickle.dumps(new_block, 2), pickle.dumps(values,2)])                    
                         except zmq.ZMQError as e:
                             print("psocket on mine function has a problem!")
                             print(str(e))
@@ -728,6 +734,7 @@ class Node(object):
                     checkProof, subUser = validations.validateProofHash(item,stake[1][item.node][0],self.cons)
                     if(checkProof):
                         sumsuc = sumsuc + subUser
+                        sqldb.setArrivedBlock(item,3)
                         sqldb.setLogBlock(item,1)
 
             #if(b):        
@@ -816,6 +823,7 @@ class Node(object):
                         status = self.commitBlock(message=[b.hash],t = 15)                             
                         if(not status): 
                             if(validations.validateExpectedLocalRound(b)):
+                                sqldb.setArrivedBlock(b,1)
                             #    print("####LISTEN####")
                             #    print("LISTEN TIME: ", int(time.mktime(datetime.datetime.now().timetuple()))) 
                             #    print("HASH BLOCk: ", b.hash)                   
@@ -829,15 +837,15 @@ class Node(object):
                                 self.msg_arrivals[pos][b.node].append(b)
                                 self.msg_arrivals[pos][b.node].append(ip)
                                 self.msg_arrivals[pos][b.node].append(user_stake)
-                                sqldb.setLogBlock(b,1) 
+                                sqldb.setLogBlock(b,1)                                 
                             else:
                                 print("BLOCK IS TOO LATE!")                        
-                            sqldb.setArrivedBlock(b,1)                                                                                                                      
+                                sqldb.setArrivedBlock(b,2)                                                                                                                      
                             #self.insertNewBlock(message=[ip, str(user_stake), b])
                             self.semaphore.acquire()
                             self.listen_signal.set()                        
                             self.semaphore.release()                        
-                            self.psocket.send_multipart([consensus.MSG_BLOCK, ip, str(user_stake), pickle.dumps(b, 2),pblock])
+                            self.psocket.send_multipart([consensus.MSG_BLOCK, ip, str(user_stake), pickle.dumps(b, 2), pblock])
                 elif(msg == consensus.MSG_TX):
                     tx = param2
                     print("NEW TRANSACTION: ", tx[0][0])                    
@@ -864,7 +872,7 @@ class Node(object):
             self.semaphore.acquire()
             print("CALL LISTEN FUNCTION")
             if(not self.threadSync.is_set()):                
-                self.f.clear()                
+                #self.f.clear()                
                 for i, msg in sorted(self.msg_arrivals.items(), key=itemgetter(1)):
                     for j, item in sorted(self.msg_arrivals[i].items(), key=itemgetter(1)):
                         b = item[0]
@@ -904,7 +912,7 @@ class Node(object):
                     #if(not self.threadSync.is_set()):
                     if(not self.msg_arrivals[i]):
                         del self.msg_arrivals[i]
-                    self.f.set()
+                    #self.f.set()
                     self.e.clear()
                     #if not self.minecontrol.is_set() and self.startMine:
                     #    self.minecontrol.set()
@@ -922,7 +930,7 @@ class Node(object):
         first = True
         while True and not self.k.is_set():
             self.start.wait()
-            self.f.wait()            
+            #self.f.wait()            
             if((nowTime - prevTime) >= parameter.timeout):
                 currentRound =  int(math.floor((float(time.mktime(datetime.datetime.now().timetuple()))  - float(parameter.GEN_ARRIVE_TIME))/ parameter.timeout))                                
                 print("CURRENT_ROUND: %d", currentRound)
@@ -1142,23 +1150,21 @@ class Node(object):
                 orderpeer = []
                 round = self.lastRound
                 for i in self.peers:
-                    h = hashlib.sha256(str(i['ipaddr'])).hexdigest()            
-                    #peerS = peerS + stake[1][i['ipaddr']][0]
-                    #peerS = peerS + stake[1][h][0]
-                    peerS = peerS + 1                    
-                    index = 0
-                    for j in orderpeer:
-                        if(h in stake[1]):
+                    h = hashlib.sha256(str(i['ipaddr'])).hexdigest()
+                    index = 0            
+                    if(h in stake[1]):
+                        peerS = peerS + 1                    
+                        for j in orderpeer:
                             if j[1] >= stake[1][h][0]:
                                 index = index + 1
                             else:
                                 break
-                        else:
-                            index = -1
-                            break
+                    else:
+                        index = -1
+
                     if(index == -1):
                         index = len(orderpeer)
-                        orderpeer.insert(index, [i['ipaddr'],index])
+                        orderpeer.insert(index, [i['ipaddr'],0])
                     else:
                         orderpeer.insert(index, [i['ipaddr'],stake[1][h][0]])
                 print("sorted peer by stake: ", orderpeer)
@@ -1292,7 +1298,7 @@ class Node(object):
                                         while t >= 0:
                                             b = chain[t][0]
                                             if(b):    
-                                                sqldb.setArrivedBlock(b,1)    
+                                                sqldb.setArrivedBlock(b,3)    
                                                 sqldb.setLogBlock(b,1)
                                                 sqldb.removeBlock(b.index)                                                
                                                 idChain = sqldb.getIdChain(b.prev_hash)

@@ -267,7 +267,7 @@ def getCurrentSuc(lround,round):
         print(str(e))
         
 
-def reversionBlock(round, lround):
+def reversionBlock(round, lround, commit):
     try:
         db = sqlite3.connect(databaseLocation)
         cursor = db.cursor()
@@ -316,7 +316,7 @@ def reversionBlock(round, lround):
                         cursor.execute("SELECT * FROM localChains WHERE hash = '%s'" %item[3])
                         item = cursor.fetchone()
                         if not item:
-                            return lround, False
+                            return lround, False, commit
 
                 deltar = (round - parameter.roundTolerancy) - query[2]
                 print("s: ",s)
@@ -328,20 +328,21 @@ def reversionBlock(round, lround):
                         cursor.execute("UPDATE localChains set stable = 1, round_stable = %d where hash = '%s'" %((round - parameter.roundTolerancy - 1),query[4]))
                         db.commit()
                         print("BLOCK INDEX %d COMMITED" %query[1])
+                        commit = query[1]
                     else:
                         if(not sync):
-                            return  lround, False
+                            return  lround, False, commit
                         else:
                             break
                 else:
                     break
                 del s[query[2] + 1]
             
-            return lround,True
+            return lround,True, commit
         else:
             if(round - lround > 1):
-                return lround, False
-        return lround, True
+                return lround, False, commit
+        return lround, True, commit
 
     except Exception as e:
         print(str(e))
@@ -1672,45 +1673,45 @@ def createtx(node_ipaddr):
         print(str(e))
 
 def insertReversion(round,lastround):
-    try:
-        db = sqlite3.connect(databaseLocation)
-        cursor = db.cursor()
-        cursor.execute("SELECT max(id) from reversion")
-        id = cursor.fetchone()
-        if(id):
-            id = id + 1
-        else:
-            id = 1
-        cursor.execute('INSERT INTO reversion VALUES (?,?,?)', (
-            id,
-            lastround,
-            round))
-        db.commit()
-        db.close()
-        return id
-    except Exception as e:
-        print(str(e)) 
+    #try:
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    cursor.execute("SELECT max(id) from reversion")
+    query = cursor.fetchone()
+    if(query[0]):
+        id = query[0] + 1
+    else:
+        id = 1
+    cursor.execute('INSERT INTO reversion VALUES (?,?,?)', (
+        id,
+        lastround,
+        round))
+    db.commit()
+    db.close()
+    return id
+    #except Exception as e:
+    #    print(str(e)) 
     return None
 
 def addBlocksReversion(fblock,lblock,idreversion):
-    try:
-        if(idreversion):
-            blocks = getBlockIntervalByRound(fblock.round,lblock.round)
-            db = sqlite3.connect(databaseLocation)
-            cursor = db.cursor()
-            for block in blocks:
-                cursor.execute('INSERT INTO block_reversion VALUES (?,?,?,?,?)',(
-                idreversion,
-                block[1],
-                block[2],
-                block[4],
-                block[14]))
-                db.commit()
-    except Exception as e:
-        print(str(e))
+    #try:
+    if(idreversion):
+        blocks = getBlockIntervalByRound(fblock.round,lblock.round)
+        db = sqlite3.connect(databaseLocation)
+        cursor = db.cursor()
+        for block in blocks:
+            cursor.execute('INSERT INTO block_reversion VALUES (?,?,?,?,?)',(
+            idreversion,
+            block[1],
+            block[2],
+            block[4],
+            block[14]))
+            db.commit()
+    #except Exception as e:
+    #    print(str(e))
     
-def explorer(num,node):
-    numblocks = 0
+def explorer(num,node='-1'):
+    receivedblocks = 0
     numround = 0
     callsync = 0
     callsyncrev = 0
@@ -1718,6 +1719,8 @@ def explorer(num,node):
     avgrevblock = 0
     avgconf = 0
     numblockstable = 0
+    lateblocks = 0
+    numblocks = 0
     try:
         db = sqlite3.connect(databaseLocation)
         cursor = db.cursor()
@@ -1747,25 +1750,40 @@ def explorer(num,node):
                         numrevblock = numrevblock + 1
                         #sync[query[0],query[1],query[2]] = sync[query[0],query[1],query[2]] + [[revquery[1], revquery[2], revquery[3], revquery[4]]]       
             
-        #get produced block number
+        #get arrived blocks
         nowTime = time.mktime(datetime.datetime.now().timetuple())
         currentRound = int(math.floor((float(nowTime) - float(parameter.GEN_ARRIVE_TIME))/parameter.timeout))
         cursor.execute("SELECT count(*) FROM arrived_block WHERE round >= %d and round < %d and node <> '%s'" %(sround,currentRound,node))
         queries = cursor.fetchone()
         if(queries):
+            receivedblocks = queries[0]
+
+        #get produced blocks
+        cursor.execute("SELECT count(*) FROM arrived_block WHERE round >= %d and round < %d" %(sround,currentRound))
+        queries = cursor.fetchone()
+        if(queries):
             numblocks = queries[0]
+            
         
         #get rounds to produce all blocks
         cursor.execute("SELECT (max(round) - min(round)) FROM arrived_block WHERE round >= %d" %sround)
         queries = cursor.fetchone()
         if(queries):
-            numround = queries[0]
+            numround = queries[0]        
+               
+        #late block number
+        cursor.execute("SELECT COUNT(*) FROM arrived_block WHERE status = 2")
+        queries = cursor.fetchone()
+        if(queries):
+            lateblocks = queries[0]
+        
+
 
         db.close()
     except Exception as e:
         print(str(e))
 
-    return [avgconf,callsync,callsyncrev,numrevblock,numblocks,numround,numblockstable]
+    return [avgconf,callsync,callsyncrev,numrevblock,receivedblocks,numround,numblockstable,lateblocks,numblocks]
 
 
 

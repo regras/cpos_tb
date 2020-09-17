@@ -225,7 +225,7 @@ GEN_ARRIVE_TIME = 1573486728
 THRESHOLD = 2
 
 # Time in seconds
-timeout = 40
+timeout = 20
 # difficulty
 
 ### Test Variables ###
@@ -248,7 +248,7 @@ round_buffer = 1 #round interval that a block can wait on the listen buffer
 
 epsilon = 0.000001 #reversion prob.
 
-TEST = 100 #size of auto test
+TEST = 200 #size of auto test
 
 W = 10000 #all network coins
 
@@ -262,10 +262,10 @@ txround = 1000
 
 difficulty = float(math.log(W,2) - math.log(tal,2)) 
 
-nodes = 5 #num nodes
+nodes = 100 #num nodes
 
-k = 2 #fraction of connected peers
-trust = 3 #fraction of trust nodes
+k = 3 #fraction of connected peers
+trust = 10 #fraction of trust nodes
 theta = 0.50 #threshold
 
 trusted,peers = TrustandPeers()
