@@ -28,6 +28,7 @@ apt-get install net-tools iputils-ping sqlite moreutils bash-completion python s
 RUN chmod 777 /home/martins/bc_pos_docker/startppos.sh
 CMD ./startppos.sh; sleep infinity
 
+
 EXPOSE 9000
 EXPOSE 9001
 EXPOSE 22

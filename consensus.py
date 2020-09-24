@@ -58,14 +58,14 @@ def handleMessages(bc, messages, node=None):
                 localSalt = node.getLocalSalt()
                 peerSalt = str(ipaddr) + str(localSalt)
                 localDistance = int(hashlib.sha256(str(node.getIp())).hexdigest(),16) ^ int(hashlib.sha256(peerSalt).hexdigest(),16)                
-                node.insertAcceptPeer(ipaddr,localDistance)
+                #node.insertAcceptPeer(ipaddr,localDistance)
                 return True
             else:
                 localSalt = node.getLocalSalt()
                 peerSalt = str(ipaddr) + str(localSalt)
                 localDistance = int(hashlib.sha256(str(node.getIp())).hexdigest(),16) ^ int(hashlib.sha256(peerSalt).hexdigest(),16)
                 if(node.checkDistance(ipaddr,localDistance)):
-                    node.insertAcceptPeer(ipaddr,localDistance)
+                    #node.insertAcceptPeer(ipaddr,localDistance)
                     return True
         return False
     else:

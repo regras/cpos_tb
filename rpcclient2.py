@@ -71,7 +71,25 @@ exit                Terminate and exit the node.py program running
                     reqsocket.close(linger=0)
                     ctx.term()
                     i = i + 1
-
+            elif(MSG_TRANS == sys.argv[1]):
+                peers = parameter.peers
+                numtrans = 0
+                i = 0
+                while (i < len(peers)):
+                    try:                         
+                        ctx = zmq.Context.instance()
+                        reqsocket = ctx.socket(zmq.REQ)
+                        reqsocket.setsockopt(zmq.RCVTIMEO, 5000)    
+                        reqsocket.connect("tcp://%s:9999" % peers[i])
+                        print("Transmission for node : ", peers[i])
+                        reqsocket.send_multipart([MSG_TRANS,sys.argv[2]])
+                        reply = reqsocket.recv_pyobj()
+                        if(reply[0]):
+                            numtrans = numtrans + reply[0]
+                    except Exception as e:
+                            print(str(e))
+                    i = i + 1
+                print("total transmission: %d" %numtrans)    
             elif(MSG_EXPLORER == sys.argv[1]):
                 avgconf = 0
                 callsync = 0
@@ -86,23 +104,26 @@ exit                Terminate and exit the node.py program running
                     peers = parameter.peers
                     i = 0               
                     while (i < len(peers)):
-                        ctx = zmq.Context.instance()
-                        reqsocket = ctx.socket(zmq.REQ)
-                        reqsocket.setsockopt(zmq.RCVTIMEO, 5000)    
-                        reqsocket.connect("tcp://%s:9999" % peers[i])
-                        print("Explorer node : ", peers[i])
-                        reqsocket.send_multipart([MSG_EXPLORER, sys.argv[2]])
+                        try:
+                            ctx = zmq.Context.instance()
+                            reqsocket = ctx.socket(zmq.REQ)
+                            reqsocket.setsockopt(zmq.RCVTIMEO, 5000)    
+                            reqsocket.connect("tcp://%s:9999" % peers[i])
+                            print("Explorer node : ", peers[i])
+                            reqsocket.send_multipart([MSG_EXPLORER, sys.argv[2]])
 
-                        reply = reqsocket.recv_pyobj()
-                        avgconf = avgconf + reply[0]
-                        callsync = callsync + reply[1]
-                        callsyncrev = callsyncrev + reply[2]
-                        numrevblock = numrevblock + reply[3]
-                        receivedblocks = receivedblocks + reply[4]
-                        numround = int(reply[5])
-                        numblockstable = int(reply[6])
-                        lateblocks = lateblocks + int(reply[7])
-                        numblocks = int(reply[8])
+                            reply = reqsocket.recv_pyobj()
+                            avgconf = avgconf + reply[0]
+                            callsync = callsync + reply[1]
+                            callsyncrev = callsyncrev + reply[2]
+                            numrevblock = numrevblock + reply[3]
+                            receivedblocks = receivedblocks + reply[4]
+                            numround = int(reply[5])
+                            numblockstable = int(reply[6])
+                            lateblocks = lateblocks + int(reply[7])
+                            numblocks = int(reply[8])
+                        except Exception as e:
+                            print(str(e))
                         i = i + 1
                     if(len(peers) > 0):
                         avgconf = avgconf / float(len(peers))

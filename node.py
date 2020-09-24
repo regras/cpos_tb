@@ -846,6 +846,9 @@ class Node(object):
                             self.listen_signal.set()                        
                             self.semaphore.release()                        
                             self.psocket.send_multipart([consensus.MSG_BLOCK, ip, str(user_stake), pickle.dumps(b, 2), pblock])
+                        #else:
+                        sqldb.setTransmitedBlock(b,1)
+
                 elif(msg == consensus.MSG_TX):
                     tx = param2
                     print("NEW TRANSACTION: ", tx[0][0])                    
@@ -869,9 +872,9 @@ class Node(object):
         while True and not self.k.is_set():
             self.listen_signal.wait()          
             #if (self.msg_arrivals and not self.threadSync.is_set()):
-            self.semaphore.acquire()
             print("CALL LISTEN FUNCTION")
-            if(not self.threadSync.is_set()):                
+            if(not self.threadSync.is_set()):
+                self.semaphore.acquire()                            
                 #self.f.clear()                
                 for i, msg in sorted(self.msg_arrivals.items(), key=itemgetter(1)):
                     for j, item in sorted(self.msg_arrivals[i].items(), key=itemgetter(1)):
@@ -916,9 +919,9 @@ class Node(object):
                     self.e.clear()
                     #if not self.minecontrol.is_set() and self.startMine:
                     #    self.minecontrol.set()
+                self.semaphore.release()
 
-            self.listen_signal.clear()                
-            self.semaphore.release()   
+            self.listen_signal.clear()                               
             #time.sleep(0.5)   
             
     def mine(self):
@@ -1142,197 +1145,237 @@ class Node(object):
     def syncNode(self):
         while True and not self.k.is_set():
             self.threadSync.wait()
-            if(self.threadSync.is_set()):
-                print("\n\nSYNCING...")
-                stake = parameter.numStake
-                trust = parameter.trusted
-                peerS = 0
-                orderpeer = []
-                round = self.lastRound
-                for i in self.peers:
-                    h = hashlib.sha256(str(i['ipaddr'])).hexdigest()
-                    index = 0            
-                    if(h in stake[1]):
-                        peerS = peerS + 1                    
-                        for j in orderpeer:
-                            if j[1] >= stake[1][h][0]:
-                                index = index + 1
-                            else:
-                                break
-                    else:
-                        index = -1
+            try:
+                if(self.threadSync.is_set()):
+                    print("\n\nSYNCING...")
+                    stake = parameter.numStake
+                    trust = parameter.trusted
+                    peerS = 0
+                    orderpeer = []
+                    round = self.lastRound
+                    for i in self.peers:
+                        h = hashlib.sha256(str(i['ipaddr'])).hexdigest()
+                        index = 0            
+                        if(h in stake[1]):
+                            peerS = peerS + 1                    
+                            for j in orderpeer:
+                                if j[1] >= stake[1][h][0]:
+                                    index = index + 1
+                                else:
+                                    break
+                        else:
+                            index = -1
 
-                    if(index == -1):
-                        index = len(orderpeer)
-                        orderpeer.insert(index, [i['ipaddr'],0])
-                    else:
-                        orderpeer.insert(index, [i['ipaddr'],stake[1][h][0]])
-                print("sorted peer by stake: ", orderpeer)
-                
-                index = 0
-                while(index < len(orderpeer)):
-                    chain = defaultdict(list)
-                    blocks = []
-                    t = 0
-                    log = {}
-                    b = self.syncRequestMajorPerPeer(round - parameter.roundTolerancy - 1, orderpeer[index][0])                
-                    if(b):
-                        print("proof_hash first block sync function: ", b.proof_hash)
-                        #inserting block on chain
-                        # 1-block request by network
-                        chain[t].append(b)
+                        if(index == -1):
+                            index = len(orderpeer)
+                            orderpeer.insert(index, [i['ipaddr'],0])
+                        else:
+                            orderpeer.insert(index, [i['ipaddr'],stake[1][h][0]])
+                    print("sorted peer by stake: ", orderpeer)
+                    
+                    index = 0
+                    idreversion = None
+                    while(index < len(orderpeer)):
+                        chain = defaultdict(list)
+                        blocks = []
+                        t = 0
+                        log = {}
+                        b = None
+                        try:
+                            b = self.syncRequestMajorPerPeer(round - parameter.roundTolerancy - 1, orderpeer[index][0])                
+                        except Exception as e:
+                            print(str(e))
+                        if(b):
+                            print("proof_hash first block sync function: ", b.proof_hash)
+                            #inserting block on chain
+                            # 1-block request by network
+                            chain[t].append(b)
 
-                        #get all know blocks that have same prev_hash                        
-                        blocks = self.syncRequestAllBlocksPerPeer(b, orderpeer[index][0])
-                        if(blocks):
-                            log[t] = []
-                            #for item in blocks:
-                            #log[t] = log[t] + [blocks[item]]
-                            log[t] = blocks
-
-                        #we have here the major of nodes choosing the block b
-                        #now node check if is possible build the chain until this block.
-                        #first we need to check if the node has prev_block on log_block table.
-                        #Next, if node not has the prev_block, it necessary send a new request to peers
-                        prev_hash = b.prev_hash
-                        status = True
-                        #r = b.round
-                        #self.semaphore.acquire()
-                        r = b.round
-                        while(status and not sqldb.dbKnowBlock(prev_hash)):
-                            status = False
-                            #trying get block in log_block table
-                            b = sqldb.getLogBlock(prev_hash)
-                            if(b):
-                                if(b.round < r):
-                                    t = t + 1
-                                    r = b.round
-                                    chain[t].append(b)
-                                    prev_hash = b.prev_hash
-                                    status = True
-                            else:                            
-                                b = self.syncRequestBlockPerPeer(prev_hash, orderpeer[index][0])
-                                if(b and b.round < r):
-                                    t = t + 1
-                                    r = b.round
-                                    chain[t].append(b)
-                                    prev_hash = b.prev_hash
-                                    status = True
-
-                            if not status:
-                                chain = None
-                                break
-
-                            #get all know blocks that have same prev_hash
-                            blocks = self.syncRequestAllBlocksPerPeer(b, orderpeer[index][0])
+                            #get all know blocks that have same prev_hash 
+                            try:                       
+                                blocks = self.syncRequestAllBlocksPerPeer(b, orderpeer[index][0])
+                            except Exception as e:
+                                print(str(e))
                             if(blocks):
                                 log[t] = []
                                 #for item in blocks:
                                 #log[t] = log[t] + [blocks[item]]
                                 log[t] = blocks
-                        lastround = r
-                        if(chain):                       
-                            ######insert all blocks. More blocks node knows better######
-                            t = max(chain)
-                            sumsuc = 0
-                            while t >= 0:
-                                blocks = None                            
-                                if(t in log):
-                                    blocks = log[t]
-                                    s,suc = self.commitBlock(message = [blocks], t=16)
-                                    sumsuc = sumsuc + suc
-                                t = t - 1
-                            ############end insert new blocks on log_block#############
-                            
-                            #############check all blocks in the chain################
-                            t = max(chain)
-                            checkProof = False
-                            while t >= 0:                            
-                                b = chain[t][0]
-                                checkProof, subUser = validations.validateProofHash(b,stake[1][b.node][0],self.cons)
-                                if(not checkProof):
+
+                            #we have here the major of nodes choosing the block b
+                            #now node check if is possible build the chain until this block.
+                            #first we need to check if the node has prev_block on log_block table.
+                            #Next, if node not has the prev_block, it necessary send a new request to peers
+                            prev_hash = b.prev_hash
+                            status = True
+                            #r = b.round
+                            #self.semaphore.acquire()
+                            r = b.round
+                            while(status and not sqldb.dbKnowBlock(prev_hash)):
+                                status = False
+                                b = None
+                                #trying get block in log_block table
+                                try:
+                                    b = sqldb.getLogBlock(prev_hash)
+                                except Exception as e:
+                                    print(str(e))
+                                if(b):
+                                    if(b.round < r):
+                                        t = t + 1
+                                        r = b.round
+                                        chain[t].append(b)
+                                        prev_hash = b.prev_hash
+                                        status = True
+                                else:   
+                                    try:                         
+                                        b = self.syncRequestBlockPerPeer(prev_hash, orderpeer[index][0])
+                                    except Exception as e:
+                                        print(str(e))
+                                    if(b):
+                                        if(b.round < r):
+                                            t = t + 1
+                                            r = b.round
+                                            chain[t].append(b)
+                                            prev_hash = b.prev_hash
+                                            status = True
+
+                                if not status:
+                                    chain = None
                                     break
-                                t = t - 1
-                            #############end check all blocks in the chain#############
 
-                            
-                            #if node know head block we have nothing to do: new chain is the same
-                            b = chain[0][0]
-                            know = sqldb.dbKnowBlock(b.hash)
-                            print("know: ", know)                      
-                            idreversion = sqldb.insertReversion(round,lastround)
-                            if(not know and checkProof): 
-                                #insert new unsync identification in the log file                                                   
-                                self.semaphore.acquire() 
-                                #check if new chain has a better s than current chain
-                                bestchain = True
-                                if(self.firstsync == 0):
-                                    currentsuc = sqldb.getCurrentSuc(lastround,(round-parameter.roundTolerancy-1))
-                                    print("current suc: ", currentsuc)
-                                    mnew = float(sumsuc) / (((round-parameter.roundTolerancy-1) - lastround) + 1)
-                                    mcurrent = float(currentsuc) / (((round-parameter.roundTolerancy-1) - lastround) + 1)
-                                    if(mnew <= mcurrent):
-                                        bestchain = False
-                                    print("new sum suc: ", sumsuc)
-                                    print("interval: ",(((round-parameter.roundTolerancy-1) - lastround) + 1))
-                                    print("initialround: ", lastround)
-                                    print("lastround: ", (round-parameter.roundTolerancy-1))
-                                    print("new mean: ", mnew)
-                                    print("current mean: ", mcurrent)
-                                ##############end check new chain s#################                            
-                                if(bestchain):
-                                    fblock = chain[max(chain)][0]
-                                    lblock = chain[0][0]
-                                    sqldb.addBlocksReversion(fblock,lblock,idreversion) 
-                                    t = max(chain) 
-                                    b = chain[t][0]                                
-                                    if(sqldb.dbKnowBlock(b.prev_hash)):                                
-                                        #remove all block that were inserted in rounds higher than sync round.
-                                        #this blocks can be created or received before unsync discovery
-                                        #start on currentRound                        
-                                        r =  int(math.floor((float(time.mktime(datetime.datetime.now().timetuple())) - float(parameter.GEN_ARRIVE_TIME))/ parameter.timeout))
-                                        while(r >= round - parameter.roundTolerancy):
-                                            sqldb.removeBlock(r)
-                                            r = r - 1                       
+                                #get all know blocks that have same prev_hash
+                                blocks = None
+                                try:
+                                    blocks = self.syncRequestAllBlocksPerPeer(b, orderpeer[index][0])
+                                except Exception as e:
+                                    print(str(e))
+                                if(blocks):
+                                    log[t] = []
+                                    #for item in blocks:
+                                    #log[t] = log[t] + [blocks[item]]
+                                    log[t] = blocks
+                            lastround = r
+                            if(chain):                       
+                                ######insert all blocks. More blocks node knows better######
+                                t = max(chain)
+                                sumsuc = 0
+                                while t >= 0:
+                                    blocks = None                            
+                                    if(t in log):
+                                        blocks = log[t]
+                                        try:
+                                            s,suc = self.commitBlock(message = [blocks], t=16)
+                                        except Exception as e:
+                                            print(str(e))
+                                        sumsuc = sumsuc + suc
+                                    t = t - 1
+                                ############end insert new blocks on log_block#############
+                                
+                                #############check all blocks in the chain################
+                                t = max(chain)
+                                checkProof = False
+                                while t >= 0:                            
+                                    b = chain[t][0]
+                                    checkProof, subUser = validations.validateProofHash(b,stake[1][b.node][0],self.cons)
+                                    if(not checkProof):
+                                        break
+                                    t = t - 1
+                                #############end check all blocks in the chain#############
 
-                                        while t >= 0:
-                                            b = chain[t][0]
-                                            if(b):    
-                                                sqldb.setArrivedBlock(b,3)    
-                                                sqldb.setLogBlock(b,1)
-                                                sqldb.removeBlock(b.index)                                                
-                                                idChain = sqldb.getIdChain(b.prev_hash)
-                                                sqldb.writeChainLeaf(idChain,b)                                    
-                                            t = t - 1  
-                                    #self.resync = 2                                                                                                                 
-                                    self.semaphore.release()
+                                
+                                #if node know head block we have nothing to do: new chain is the same
+                                b = chain[0][0]
+                                know = sqldb.dbKnowBlock(b.hash)
+                                print("know: ", know)   
+                                if(index == 0):   
+                                    try:                
+                                        idreversion = sqldb.insertReversion(round,lastround)
+                                    except Exception as e:
+                                        print(str(e))
+                                if(not know and checkProof): 
+                                    #insert new unsync identification in the log file                                                   
+                                    self.semaphore.acquire() 
+                                    #check if new chain has a better s than current chain
+                                    bestchain = True
+                                    if(self.firstsync == 0):
+                                        currentsuc = sqldb.getCurrentSuc(lastround,(round-parameter.roundTolerancy-1))
+                                        print("current suc: ", currentsuc)
+                                        mnew = float(sumsuc) / (((round-parameter.roundTolerancy-1) - lastround) + 1)
+                                        mcurrent = float(currentsuc) / (((round-parameter.roundTolerancy-1) - lastround) + 1)
+                                        if(mnew <= mcurrent):
+                                            bestchain = False
+                                        print("new sum suc: ", sumsuc)
+                                        print("interval: ",(((round-parameter.roundTolerancy-1) - lastround) + 1))
+                                        print("initialround: ", lastround)
+                                        print("lastround: ", (round-parameter.roundTolerancy-1))
+                                        print("new mean: ", mnew)
+                                        print("current mean: ", mcurrent)
+                                    ##############end check new chain s#################                            
+                                    if(bestchain):
+                                        fblock = chain[max(chain)][0]
+                                        lblock = chain[0][0]
+                                        if(not idreversion):
+                                            try:
+                                                idreversion = sqldb.insertReversion(round,lastround)
+                                            except Exception as e:
+                                                print(str(e))
+                                        try:
+                                            if(idreversion):
+                                                sqldb.addBlocksReversion(fblock,lblock,idreversion) 
+                                        except Exception as e:
+                                            print(str(e))
+                                        t = max(chain) 
+                                        b = chain[t][0]                                
+                                        if(sqldb.dbKnowBlock(b.prev_hash)):                                
+                                            #remove all block that were inserted in rounds higher than sync round.
+                                            #this blocks can be created or received before unsync discovery
+                                            #start on currentRound                        
+                                            r =  int(math.floor((float(time.mktime(datetime.datetime.now().timetuple())) - float(parameter.GEN_ARRIVE_TIME))/ parameter.timeout))
+                                            while(r >= round - parameter.roundTolerancy):
+                                                sqldb.removeBlock(r)
+                                                r = r - 1                       
+
+                                            while t >= 0:
+                                                b = chain[t][0]
+                                                if(b):  
+                                                    try:  
+                                                        sqldb.setArrivedBlock(b,3)    
+                                                        sqldb.setLogBlock(b,1)
+                                                        sqldb.removeBlock(b.index)                                                
+                                                        idChain = sqldb.getIdChain(b.prev_hash)
+                                                        sqldb.writeChainLeaf(idChain,b)
+                                                    except Exception as e:
+                                                        print(str(e))                                                                                            
+                                                t = t - 1  
+                                        #self.resync = 2                                                                                                                 
+                                        self.semaphore.release()
+                                    else:
+                                        self.semaphore.release()
+                                        print("PEERS HAVE A WORST CHAIN...WE WILL NEED CONNECT WITH MORE PEERS AND TRY AGAIN")                
+                                        #self.resync = self.resync + 1
                                 else:
-                                    self.semaphore.release()
-                                    print("PEERS HAVE A WORST CHAIN...WE WILL NEED CONNECT WITH MORE PEERS AND TRY AGAIN")                
-                                    #self.resync = self.resync + 1
+                                    #self.semaphore.release()
+                                    print("PEERS BELIEVE ON THE SAME CHAIN OR CHAIN IS NOT CORRECT.")
+                                    #self.resync = self.resync + 1                                                        
                             else:
                                 #self.semaphore.release()
-                                print("PEERS BELIEVE ON THE SAME CHAIN OR CHAIN IS NOT CORRECT.")
-                                #self.resync = self.resync + 1                                                        
+                                print("PEERS CHAIN IS NOT CORRECT")
+                                #self.resync = self.resync + 1              
                         else:
                             #self.semaphore.release()
-                            print("PEERS CHAIN IS NOT CORRECT")
-                            #self.resync = self.resync + 1              
-                    else:
-                        #self.semaphore.release()
-                        print("PEERS NOT HAVE CONSENSUS IN A COMMON BLOCK.")
-                        #self.resync = self.resync + 1
+                            print("PEERS NOT HAVE CONSENSUS IN A COMMON BLOCK.")
+                            #self.resync = self.resync + 1
 
-                    index = index + 1
-                    
-            #self.start.clear()             
-            if(self.firstsync == 1):
-                self.firstsync = 0
+                        index = index + 1
+            except Exception as e:
+                print(str(e))
+
             self.semaphore.acquire()
             self.listen_signal.set() #check if buffer has same block that was received after sync.
+            self.threadSync.clear()
             self.semaphore.release()
             print("END SYNC \n\n")
-            self.threadSync.clear()                                
+                                            
             
                 
     '''def insertChain(self,k,chain):
@@ -1474,7 +1517,11 @@ class Node(object):
                 num = messages[1]
                 node = hashlib.sha256(str(self.ipaddr)).hexdigest()
                 reply = sqldb.explorer(num,node)
-                self.rpcsocket.send_pyobj(reply)              
+                self.rpcsocket.send_pyobj(reply)
+            elif cmd == rpc.MSG_TRANS:
+                num = messages[1]
+                reply = sqldb.get_trans(num)
+                self.rpcsocket.send_pyobj(reply)                                 
             elif cmd == rpc.MSG_START:
                 self.rpcsocket.send_string('Starting mining...')
                 nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
@@ -1649,7 +1696,6 @@ class Node(object):
                 print(str(e))                
             self.router.disconnect("tcp://%s:%s" % (address, self.port+1))
         return m
-
     def reqBlock(self, message, address = None):
         m = None
         if address:

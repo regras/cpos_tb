@@ -76,7 +76,7 @@ def TrustandPeers():
 
 def comb(tal):
     combi = {}
-    for k in range(0,tal+31):
+    for k in range(0,tal+201):
         index = "("+str(W)+","+str(k)+")"
         combi[index] = chaincontrol.Combinations(W,k)
     return combi
@@ -225,7 +225,7 @@ GEN_ARRIVE_TIME = 1573486728
 THRESHOLD = 2
 
 # Time in seconds
-timeout = 20
+timeout = 30
 # difficulty
 
 ### Test Variables ###
@@ -256,7 +256,7 @@ q = 0 #attackers probability
 
 hW = int(W * float(1 - q)) #honest coins
 
-tal = 10 #proposer parameter
+tal = 1 #proposer parameter
 
 txround = 1000
 
@@ -266,7 +266,7 @@ nodes = 100 #num nodes
 
 k = 3 #fraction of connected peers
 trust = 10 #fraction of trust nodes
-theta = 0.50 #threshold
+theta = 0.10 #threshold
 
 trusted,peers = TrustandPeers()
 

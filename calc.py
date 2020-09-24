@@ -35,17 +35,19 @@ def Combinations(m,n):
 ##################################################
 
 #########input parameters#########
-smean = 12
+smean = 2
 round = 1
 #fileName = 'results.txt'
 #################################
 #while(smean >= 1):
-round = 1
+round = 5
 tprob = 2
 #    while(tprob >= (10**-6) and round <= 10):
         ####define initial parameters####
 p = float(parameter.tal) / float(parameter.W)    
 limit = (2 * round * smean) - 1
+#limit = 51
+#limit  = 30
 #limit = (round * smean) - 1
 #limit = round*(smean + 10) - 1 
 tprob = 0

@@ -109,6 +109,19 @@ def dbConnect():
       startFork text default 0,
       endFork text default 0)""")
     
+    cursor.execute("""CREATE TABLE IF NOT EXISTS transmit_block (
+      idAutoNum INTEGER PRIMARY KEY AUTOINCREMENT,
+      id INTEGER NOT NULL,
+      round integer,
+      arrive_time text,
+      node text,
+      prev_hash text,
+      hash text,
+      proof_hash text,
+      tx text,
+      status integer,
+      subuser integer)""")
+    
     cursor.execute("""CREATE TABLE IF NOT EXISTS arrived_block (
       idAutoNum INTEGER PRIMARY KEY AUTOINCREMENT,
       id INTEGER NOT NULL,
@@ -781,6 +794,27 @@ def setArrivedBlock(b,accepted):
             db.close()
         except sqlite3.IntegrityError:
             logger.warning('db insert duplicated block on arrived_block')
+
+def setTransmitedBlock(b,accepted):
+    if(b):
+        db = sqlite3.connect(databaseLocation)
+        cursor = db.cursor()
+        try:
+            cursor.execute('INSERT INTO transmit_block (id, round, arrive_time, node, prev_hash, hash,proof_hash,tx,status,subuser) VALUES (?,?,?,?,?,?,?,?,?,?)',(
+                b.__dict__['index'],
+                b.__dict__['round'],
+                b.__dict__['arrive_time'],
+                b.__dict__['node'],
+                b.__dict__['prev_hash'],
+                b.__dict__['hash'],
+                b.__dict__['proof_hash'],
+                b.__dict__['tx'],
+                accepted,
+                b.__dict__['subuser']))
+            db.commit()
+            db.close()
+        except sqlite3.IntegrityError:
+            logger.warning('db insert duplicated block on transmit_block')
 
 def setLogBlock(b, accepted):
     db = sqlite3.connect(databaseLocation)
@@ -1673,43 +1707,55 @@ def createtx(node_ipaddr):
         print(str(e))
 
 def insertReversion(round,lastround):
-    #try:
-    db = sqlite3.connect(databaseLocation)
-    cursor = db.cursor()
-    cursor.execute("SELECT max(id) from reversion")
-    query = cursor.fetchone()
-    if(query[0]):
-        id = query[0] + 1
-    else:
-        id = 1
-    cursor.execute('INSERT INTO reversion VALUES (?,?,?)', (
-        id,
-        lastround,
-        round))
-    db.commit()
-    db.close()
-    return id
-    #except Exception as e:
-    #    print(str(e)) 
+    try:
+        db = sqlite3.connect(databaseLocation)
+        cursor = db.cursor()
+        cursor.execute("SELECT max(id) from reversion")
+        query = cursor.fetchone()
+        if(query[0]):
+            id = query[0] + 1
+        else:
+            id = 1
+        cursor.execute('INSERT INTO reversion VALUES (?,?,?)', (
+            id,
+            lastround,
+            round))
+        db.commit()
+        db.close()
+        return id
+    except Exception as e:
+        print(str(e)) 
     return None
 
 def addBlocksReversion(fblock,lblock,idreversion):
-    #try:
-    if(idreversion):
-        blocks = getBlockIntervalByRound(fblock.round,lblock.round)
+    try:
+        if(idreversion):
+            blocks = getBlockIntervalByRound(fblock.round,lblock.round)
+            db = sqlite3.connect(databaseLocation)
+            cursor = db.cursor()
+            for block in blocks:
+                cursor.execute('INSERT INTO block_reversion VALUES (?,?,?,?,?)',(
+                idreversion,
+                block[1],
+                block[2],
+                block[4],
+                block[14]))
+                db.commit()
+    except IntegrityError as e:
+        print(str(e))
+
+def get_trans(num):
+    try:
         db = sqlite3.connect(databaseLocation)
         cursor = db.cursor()
-        for block in blocks:
-            cursor.execute('INSERT INTO block_reversion VALUES (?,?,?,?,?)',(
-            idreversion,
-            block[1],
-            block[2],
-            block[4],
-            block[14]))
-            db.commit()
-    #except Exception as e:
-    #    print(str(e))
-    
+        cursor.execute('SELECT COUNT(*) FROM transmit_block WHERE id <= %d' %num)  
+        queries = cursor.fetchone()
+        if(queries):
+            return [queries[0]]
+    except Exception as e:
+        print(str(e))
+    return [None]
+
 def explorer(num,node='-1'):
     receivedblocks = 0
     numround = 0
