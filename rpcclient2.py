@@ -67,6 +67,10 @@ exit                Terminate and exit the node.py program running
                         print(reqsocket.recv_string())
                         
                     except zmq.Again:
+                        fileName = '/datavolume/failed.txt'
+                        results = open(fileName, 'a')
+                        results.write(str(peers[i]) + '\n')
+                        results.close()
                         print("Command failed")                
                     reqsocket.close(linger=0)
                     ctx.term()
@@ -205,7 +209,7 @@ exit                Terminate and exit the node.py program running
                 print("Node Peers: \n")
                 for i in peers:
                     print(i)
-                    print("\n")
+                print("Total: ", len(peers))                    
             else:
                 print("Unknown command")            
 

@@ -42,7 +42,11 @@ def TrustandPeers():
 
     contIPs = 0
     for i in range(0,cont+2):
-        for j in range(3,256):
+        if i == 0:
+            first = 3
+        else:
+            first = 0
+        for j in range(first,256):            
             trusted=trusted+['10.1.'+str(i)+'.'+str(j)]
             contIPs=contIPs+1
             if(contIPs == trust):
@@ -64,7 +68,11 @@ def TrustandPeers():
     contIPs = 0
     #print cont
     for i in range(0,cont+2):
-        for j in range(3,256):
+        if i == 0:
+            first = 3
+        else:
+            first = 0
+        for j in range(first,256):
             peers=peers+['10.1.'+str(i)+'.'+str(j)]
             contIPs=contIPs+1
             if(contIPs == nodes):
@@ -76,7 +84,7 @@ def TrustandPeers():
 
 def comb(tal):
     combi = {}
-    for k in range(0,tal+201):
+    for k in range(0,tal+31):
         index = "("+str(W)+","+str(k)+")"
         combi[index] = chaincontrol.Combinations(W,k)
     return combi
@@ -225,7 +233,7 @@ GEN_ARRIVE_TIME = 1573486728
 THRESHOLD = 2
 
 # Time in seconds
-timeout = 30
+timeout = 60
 # difficulty
 
 ### Test Variables ###
@@ -248,7 +256,7 @@ round_buffer = 1 #round interval that a block can wait on the listen buffer
 
 epsilon = 0.000001 #reversion prob.
 
-TEST = 200 #size of auto test
+TEST = 20 #size of auto test
 
 W = 10000 #all network coins
 
@@ -256,7 +264,7 @@ q = 0 #attackers probability
 
 hW = int(W * float(1 - q)) #honest coins
 
-tal = 1 #proposer parameter
+tal = 10 #proposer parameter
 
 txround = 1000
 
@@ -265,10 +273,11 @@ difficulty = float(math.log(W,2) - math.log(tal,2))
 nodes = 100 #num nodes
 
 k = 3 #fraction of connected peers
-trust = 10 #fraction of trust nodes
-theta = 0.10 #threshold
+trust = 2 #fraction of trust nodes
+theta = 0.5 #threshold
 
 trusted,peers = TrustandPeers()
+#defineNeighbors(peers)
 
 #define distribution stake
 numStake = defineStake(hW)
@@ -286,3 +295,4 @@ pblock = bPayload()
 
 #calc committed expected per round and sync_threshold
 committed,sync_threshold = structCommitted(tal)
+

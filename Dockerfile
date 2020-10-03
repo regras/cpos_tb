@@ -13,8 +13,8 @@ COPY log log/
 COPY rpc rpc/
 
 RUN apt-get update && \ 
-apt-get install net-tools iputils-ping sqlite moreutils bash-completion python screen python-zmq python-configparser -y
-
+apt-get install net-tools iputils-ping sqlite moreutils bash-completion python screen python-zmq python-configparser python-bitarray python-pip  -y
+RUN pip install mmh3
 #ENTRYPOINT bash -c "ipaddress=$(hostname -I)" && bash
 #ENTRYPOINT service ssh restart && screen -d -m bash -c "python node.py -i $(hostname -I) -p 9000" && bash
 #ENTRYPOINT screen -d -m bash -c "python node.py -i $(hostname -I) -p 9000" && bash
