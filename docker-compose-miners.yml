@@ -1,8 +1,8 @@
 version: "3.1"
 services:
   ppos:
-    image: diegofgm/martins:ppos1.0   
+    image: diegofgm/martins:ppos2.0   
     deploy:
-      replicas: 2
-    volumes:
-      - "/mnt/:/datavolume/"  
+      replicas: 20
+    #volumes:
+    #  - "/mnt/:/datavolume/"  

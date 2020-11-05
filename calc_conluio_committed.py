@@ -35,7 +35,7 @@ def Combinations(m,n):
 ##################################################
 
 #########input parameters#########
-smean = 9
+smean = 6
 round = 1
 fileName = 'results_mean_smaller.txt'
 #################################
@@ -46,7 +46,7 @@ tprob = 1
         ####define initial parameters####
 p = float(parameter.tal) / float(parameter.W)    
 limit = (round * smean) - 1
-tprob = 0
+tprob = Decimal(0)
 ################################
 while(limit >=0):
     q = MixedIntegerLinearProgram()
@@ -61,23 +61,23 @@ while(limit >=0):
 
     #calc probability
     for k in a:
-        prob = 1
+        prob = Decimal(1)
         for i in range(0,round):
-            index = "("+str(parameter.W)+","+str(k[i])+")"
-            if(index in parameter.combination):
-                comb = parameter.combination[index]
+            index = "("+str(parameter.qW)+","+str(k[i])+")"
+            if(index in parameter.combinations_conluio):
+                comb = parameter.combinations_conluio[index]
             else:
                 print("combinations not present in list")
-                comb = Combinations(parameter.W,k[i])
-            prob_i = comb * (p**k[i]) * ((1-p)**(parameter.W - k[i]))
+                comb = Combinations(parameter.qW,k[i])
+            prob_i = Decimal(comb * (p**k[i]) * ((1-p)**(parameter.qW - k[i])))
             prob = prob * prob_i
         tprob = tprob + prob
     limit = limit - 1    
-tprob = 1 - tprob
+tprob = Decimal(1) - Decimal(tprob)
 print(tprob)
 results = open(fileName, 'a')
 results.write('probability: '+str(tprob)+'\n'
-+ 'mean smaller than '+str(smean)+ '\n'
++ 'mean higher than '+str(smean)+ '\n'
 + 'after '+str(round)+ ' rounds\n')
 results.close()    
 print("we have probability %f of exists other chain with the mean %f on round %d" %(tprob,smean,round))

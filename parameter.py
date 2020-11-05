@@ -5,27 +5,160 @@ import datetime
 import hashlib
 import chaincontrol
 # -*- coding: utf-8 -*-
-def structCommitted(tau):
+def structCommitted(tau,epsilon):
     committed = {}
     sync_threshold = {}
     deltar = 2
     if(tau == 10):
-        committed[deltar] = 15
-        committed[deltar + 1] = 12
-        committed[deltar + 2] = 10
-        committed[deltar + 3] = 10
-        committed[deltar + 4] = 9
-        committed[deltar + 5] = 9
-        committed[deltar + 6] = 8
-        committed[deltar + 7] = 8
-        committed[deltar + 8] = 7
+        if epsilon == 0.00000001:
+            committed[deltar] = 17
+            committed[deltar + 1] = 13
+            committed[deltar + 2] = 11
+            committed[deltar + 3] = 11
+            committed[deltar + 4] = 10
+            committed[deltar + 5] = 10
+            committed[deltar + 6] = 9
+            committed[deltar + 7] = 9
+            committed[deltar + 8] = 9
 
-        ##sync threshold##
-        sync_threshold[deltar] = 4
+        elif epsilon == 0.000001:
+            committed[deltar] = 15
+            committed[deltar + 1] = 12
+            committed[deltar + 2] = 10
+            committed[deltar + 3] = 10
+            committed[deltar + 4] = 9
+            committed[deltar + 5] = 9
+            committed[deltar + 6] = 8
+            committed[deltar + 7] = 8
+            committed[deltar + 8] = 7
+        elif epsilon == 0.0001:
+            committed[deltar] = 13
+            committed[deltar + 1] = 10
+            committed[deltar + 2] = 9
+            committed[deltar + 3] = 9
+            committed[deltar + 4] = 8
+            committed[deltar + 5] = 7
+            committed[deltar + 6] = 7
+            committed[deltar + 7] = 7
+            committed[deltar + 8] = 7
+        else:
+            print("epsilon error!")
+
+        sync_threshold[deltar] = 5
         sync_threshold[deltar + 1] = 6
-        sync_threshold[deltar + 2] = 6
+        sync_threshold[deltar + 2] = 7
         sync_threshold[deltar + 3] = 7
-        sync_threshold[deltar + 4] = 7 
+        sync_threshold[deltar + 4] = 7
+        sync_threshold[deltar + 5] = 8 
+        
+    elif(tau == 7):
+        if epsilon == 0.00000001:
+            committed[deltar] = 14
+            committed[deltar + 1] = 11
+            committed[deltar + 2] = 9
+            committed[deltar + 3] = 8
+            committed[deltar + 4] = 8
+            committed[deltar + 5] = 7
+            committed[deltar + 6] = 7
+            committed[deltar + 7] = 7
+            committed[deltar + 8] = 6            
+
+        elif epsilon == 0.000001:
+            committed[deltar] = 12
+            committed[deltar + 1] = 9
+            committed[deltar + 2] = 8
+            committed[deltar + 3] = 8
+            committed[deltar + 4] = 7
+            committed[deltar + 5] = 6
+            committed[deltar + 6] = 6
+            committed[deltar + 7] = 6
+            committed[deltar + 8] = 6
+            
+        elif epsilon == 0.0001:
+            committed[deltar] = 10
+            committed[deltar + 1] = 8
+            committed[deltar + 2] = 7
+            committed[deltar + 3] = 7
+            committed[deltar + 4] = 6
+            committed[deltar + 5] = 6
+            committed[deltar + 6] = 6
+            committed[deltar + 7] = 6
+            committed[deltar + 8] = 6
+            committed[deltar + 9] = 6
+            committed[deltar + 10] = 6
+        else:
+            print("epsilon error!")
+
+        sync_threshold[deltar] = 3
+        sync_threshold[deltar + 1] = 4
+        sync_threshold[deltar + 2] = 4
+        sync_threshold[deltar + 3] = 4
+        sync_threshold[deltar + 4] = 5
+        sync_threshold[deltar + 5] = 5 
+
+    elif(tau == 4):
+        if epsilon == 0.00000001:
+            committed[deltar] = 11
+            committed[deltar + 1] = 8
+            committed[deltar + 2] = 7
+            committed[deltar + 3] = 6
+            committed[deltar + 4] = 6
+            committed[deltar + 5] = 5
+            committed[deltar + 6] = 5
+            committed[deltar + 7] = 5
+            committed[deltar + 8] = 5
+            committed[deltar + 9] = 4
+            committed[deltar + 10] = 4
+            committed[deltar + 11] = 4
+            committed[deltar + 12] = 4
+            committed[deltar + 13] = 4
+            committed[deltar + 14] = 4
+            committed[deltar + 15] = 4
+            committed[deltar + 16] = 4
+            committed[deltar + 17] = 4
+            committed[deltar + 18] = 4
+            committed[deltar + 19] = 4
+            committed[deltar + 20] = 3
+
+        elif epsilon == 0.000001:
+            committed[deltar] = 9
+            committed[deltar + 1] = 7
+            committed[deltar + 2] = 6
+            committed[deltar + 3] = 5
+            committed[deltar + 4] = 5
+            committed[deltar + 5] = 5
+            committed[deltar + 6] = 5
+            committed[deltar + 7] = 4
+            committed[deltar + 8] = 4
+            committed[deltar + 9] = 4
+            committed[deltar + 10] = 4 
+            committed[deltar + 11] = 4 
+            committed[deltar + 12] = 4 
+            committed[deltar + 13] = 4 
+            committed[deltar + 14] = 4 
+            committed[deltar + 15] = 4 
+            committed[deltar + 16] = 4 
+            committed[deltar + 17] = 3 
+            
+        elif epsilon == 0.0001:
+            committed[deltar] = 7
+            committed[deltar + 1] = 6
+            committed[deltar + 2] = 5
+            committed[deltar + 3] = 5
+            committed[deltar + 4] = 4
+            committed[deltar + 5] = 4
+            committed[deltar + 6] = 4
+            committed[deltar + 7] = 3
+            committed[deltar + 8] = 3
+        else:
+            print("epsilon error!")
+        ##sync threshold##
+        sync_threshold[deltar] = 1
+        sync_threshold[deltar + 1] = 1
+        sync_threshold[deltar + 2] = 2
+        sync_threshold[deltar + 3] = 2
+        sync_threshold[deltar + 4] = 2
+        sync_threshold[deltar + 5] = 2 
         
     return committed,sync_threshold
 
@@ -47,7 +180,7 @@ def TrustandPeers():
         else:
             first = 0
         for j in range(first,256):            
-            trusted=trusted+['10.1.'+str(i)+'.'+str(j)]
+            trusted=trusted+['10.1'+str(i)+'.'+str(j)]
             contIPs=contIPs+1
             if(contIPs == trust):
                 break
@@ -69,10 +202,11 @@ def TrustandPeers():
     #print cont
     for i in range(0,cont+2):
         if i == 0:
-            first = 3
+            first = 2
         else:
             first = 0
         for j in range(first,256):
+            #if (i != 1) or (i == 1 and j < 146 or j > 165):
             peers=peers+['10.1.'+str(i)+'.'+str(j)]
             contIPs=contIPs+1
             if(contIPs == nodes):
@@ -82,11 +216,11 @@ def TrustandPeers():
     #print peers
     return trusted,peers
 
-def comb(tal):
+def comb(tal,w):
     combi = {}
     for k in range(0,tal+31):
-        index = "("+str(W)+","+str(k)+")"
-        combi[index] = chaincontrol.Combinations(W,k)
+        index = "("+str(w)+","+str(k)+")"
+        combi[index] = chaincontrol.Combinations(w,k)
     return combi
 
 def firstCoinsValue():
@@ -233,7 +367,7 @@ GEN_ARRIVE_TIME = 1573486728
 THRESHOLD = 2
 
 # Time in seconds
-timeout = 60
+timeout = 20
 # difficulty
 
 ### Test Variables ###
@@ -254,23 +388,25 @@ tol = 2 #round tolerance
 
 round_buffer = 1 #round interval that a block can wait on the listen buffer
 
-epsilon = 0.000001 #reversion prob.
+epsilon = 0.00000001 #reversion prob.
 
-TEST = 20 #size of auto test
+TEST = 2000 #test time
 
 W = 10000 #all network coins
 
-q = 0 #attackers probability
+q = 0  #attackers probability
 
 hW = int(W * float(1 - q)) #honest coins
 
-tal = 10 #proposer parameter
+qW = int(W * float(q)) #dishonest coins
+
+tal = 4 #proposer parameter
 
 txround = 1000
 
 difficulty = float(math.log(W,2) - math.log(tal,2)) 
 
-nodes = 100 #num nodes
+nodes = 400 #num nodes
 
 k = 3 #fraction of connected peers
 trust = 2 #fraction of trust nodes
@@ -285,7 +421,8 @@ numStake = defineStake(hW)
 #numStake[1]
 
 #some combinations
-combination = comb(tal)
+combination = comb(tal,hW)
+combinations_conluio = comb(tal,qW)
         
 #define first coins values
 values = firstCoinsValue()
@@ -294,5 +431,6 @@ values = firstCoinsValue()
 pblock = bPayload()
 
 #calc committed expected per round and sync_threshold
-committed,sync_threshold = structCommitted(tal)
+committed,sync_threshold = structCommitted(tal,epsilon)
 
+lenblocks = [98,489,684,977,1465,1661,1954,2930,4883,7813]

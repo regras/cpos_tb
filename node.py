@@ -28,6 +28,7 @@ import random
 from operator import itemgetter
 from bloomfilter import BloomFilter
 from thread import *
+import sys
 
 
 #TODO blockchain class and database decision (move to only db solution?)
@@ -66,6 +67,7 @@ class Node(object):
         self.lround = 0
         self.commit = 1
         self.round = 0
+        self.starttime = 0
         # ZMQ attributes
         self.ctx = zmq.Context.instance()
         self.poller = zmq.Poller()
@@ -333,8 +335,8 @@ class Node(object):
         return False'''
 ####### start initial node set ############
 ####Nodes are connected on a previous peer list#####
-    def startnode(self,ipaddr=None):
-        with open('/datavolume/peers.pkl', 'rb') as input:
+    def startnode(self,ipaddr=None,startTime=None):
+        with open('peers.pkl', 'rb') as input:
             peers = pickle.load(input)
             if ipaddr in peers:
                 peersList = peers[ipaddr]
@@ -343,7 +345,7 @@ class Node(object):
             else:
                 print "impossible to connect in some peer!"
 
-        if(self.fmine):
+        '''if(self.fmine):
             #inform others peers that connected process is over
             fileName = '/datavolume/allnodeconnected.txt'
             results = open(fileName, 'a')
@@ -360,8 +362,13 @@ class Node(object):
                 if len(read) >= parameter.nodes:
                     status = True
                 results.close()
-            time.sleep(1)
+            time.sleep(1)'''
 
+        nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
+        print("startTime: ", startTime)        
+        print("sleeping time: %f" %(1200 - (nowTime - float(startTime))))
+        if((1200 - (nowTime - startTime)) > 0):
+            time.sleep(1200 - (nowTime - startTime))
         self.startThreads()
 
 #########neighbor connect function ###############
@@ -465,14 +472,14 @@ class Node(object):
         
         if(firstC and self.fmine):
             #inform others peers that connected process is over
-            fileName = '/datavolume/allnodeconnected.txt'
+            fileName = 'allnodeconnected.txt'
             results = open(fileName, 'a')
             results.write(str(ipaddr) + '\n')
             results.close()
 
         if(firstC):
             #check if all peers was connected change to /datavolume/allnodeconnected.txt
-            fileName = '/datavolume/allnodeconnected.txt'
+            fileName = 'allnodeconnected.txt'
             status = False
             while(not status):
                 if(os.path.isfile(fileName)):                
@@ -526,6 +533,7 @@ class Node(object):
         time.sleep(parameter.timeout - ((nowTime - parameter.GEN_ARRIVE_TIME) - currentRound))                
         self.start.set()
         self.f.set()
+        self.starttime = float(time.mktime(datetime.datetime.now().timetuple()))
             
         
         #thread to count stable blocks
@@ -550,29 +558,28 @@ class Node(object):
 
 
     def stableBlock(self):
-        if(self.firstsync == 1):
-            nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
-            currentRound =  int(math.floor((float(nowTime) - float(parameter.GEN_ARRIVE_TIME))/ parameter.timeout))    
-            self.lastRound = currentRound
-            self.resync = 0
-            self.threadSync.set()
-
+        #if(self.firstsync == 1):
+        #nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
+        #currentRound =  int(math.floor((float(nowTime) - float(parameter.GEN_ARRIVE_TIME))/ parameter.timeout))    
+        #self.lastRound = currentRound
+        #self.resync = 0
+        #self.threadSync.set()
         #while True and not self.k.is_set():            
-        if(not self.threadSync.is_set()):
-            nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
-            currentRound =  int(math.floor((float(nowTime) - float(parameter.GEN_ARRIVE_TIME))/ parameter.timeout))
-            
-            self.semaphore.acquire()                                       
+        nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
+        currentRound =  int(math.floor((float(nowTime) - float(parameter.GEN_ARRIVE_TIME))/ parameter.timeout))                
+        if(not self.threadSync.is_set()):                
+            #self.semaphore.acquire()                                       
             print("STABLE ROUND: ", currentRound)
             self.lround,sync,self.commit = sqldb.reversionBlock(currentRound,self.lround,self.commit)
             if(not sync):
                 self.lastRound = currentRound
                 self.resync = 0
                 self.threadSync.set()
-                #self.minecontrol.clear()
-            if(self.commit > parameter.TEST):
-                self.start.clear()
-            self.semaphore.release()
+            #self.semaphore.release()  
+        #prevTime = nowTime
+        #nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
+        #if(parameter.timeout > (nowTime - prevTime)):
+        #    time.sleep(parameter.timeout - (nowTime - prevTime))
             
     def acquireCommitBlock(self):
         self.semaphore.acquire()
@@ -903,50 +910,60 @@ class Node(object):
             if(currentRound not in self.sendbf):
                 self.sendbf[currentRound] = self.checkblock.new_filter()               
             status = self.checkblock.check(b.hash,self.sendbf[currentRound])
-            #print("Is block %s in the bloom filter: %s" %(b.hash,status))
+            print("Is block in the bloom filter: %s" %(status))
             if(not status):
                 self.checkblock.add(b.hash,self.sendbf[currentRound])
                 message = [b,ip,user_stake,bloom_filter,srcaddr]
-                start_new_thread(self.sendControl, (message,))
                 #self.insertNewBlock([b,ip,user_stake,bloom_filter,srcaddr])                
-                self.workersemaphore.release()
-                while(b.round > self.round):
-                    time.sleep(0.1)
-                self.semaphore.acquire()                                   
                 if(validations.validateExpectedLocalRound(b)):
-                    sqldb.setLogBlock(b,1)
-                    sqldb.setArrivedBlock(b,1)                                            
-                    if validations.validateBlockHeader(b):                        
-                        print("########STARTING INSERT NEW BLOCK#########")                            
-                        print("NEW BLOCK ARRIVED")
-                        print(b.index)
-                        print(b.hash)
-                        print(b.prev_hash)                     
-                        logging.debug('valid block header')
-                        prevBlock = self.commitBlock([b.prev_hash],t=14)
-                        if(prevBlock and sqldb.isLeaf(b.index)):   
-                            print("prev block found: ", b.prev_hash)                             
-                            if(b.round > prevBlock.round):
-                                checkProof, subUser = validations.validateProofHash(b,user_stake,self.cons)
-                                if(checkProof):
-                                    status = self.commitBlock(message = [b],t = 2)
-                        else:
-                            pos = b.index
-                            if(pos not in self.msg_arrivals):
-                                self.msg_arrivals[pos] = {}
-                            self.msg_arrivals[pos][b.node] = []
-                            self.msg_arrivals[pos][b.node].append(b)
-                            self.msg_arrivals[pos][b.node].append(ip)
-                            self.msg_arrivals[pos][b.node].append(user_stake)                                 
-                        print("########END INSERT NEW BLOCK#########")
-                        print("\n\n")                                                                                                                                              
-                    
+                    start_new_thread(self.sendControl, (message,))
+                    self.workersemaphore.release()
+
+                    while(b.round > self.round):
+                        time.sleep(0.1)
+                    self.semaphore.acquire()
+                    b.arrive_time = float(time.mktime(datetime.datetime.now().timetuple()))
+                    if(validations.validateExpectedLocalRound(b)):                                                                                   
+                        sqldb.setLogBlock(b,1)
+                        sqldb.setArrivedBlock(b,1)  
+                        sqldb.setTransmitedBlock(b,1)                                          
+                        if validations.validateBlockHeader(b):                        
+                            print("########STARTING INSERT NEW BLOCK#########")                            
+                            print("NEW BLOCK ARRIVED")
+                            print(b.index)
+                            print(b.hash)
+                            print(b.prev_hash)                     
+                            logging.debug('valid block header')
+                            prevBlock = self.commitBlock([b.prev_hash],t=14)
+                            if(prevBlock and sqldb.isLeaf(b.index)):   
+                                print("prev block found: ", b.prev_hash)                             
+                                if(b.round > prevBlock.round):
+                                    checkProof, subUser = validations.validateProofHash(b,user_stake,self.cons)
+                                    if(checkProof):
+                                        status = self.commitBlock(message = [b],t = 2)
+                            else:
+                                pos = b.index
+                                if(pos not in self.msg_arrivals):
+                                    self.msg_arrivals[pos] = {}
+                                self.msg_arrivals[pos][b.node] = []
+                                self.msg_arrivals[pos][b.node].append(b)
+                                self.msg_arrivals[pos][b.node].append(ip)
+                                self.msg_arrivals[pos][b.node].append(user_stake)                                 
+                            print("########END INSERT NEW BLOCK#########")
+                            print("\n\n")
+                    else:
+                        print("BLOCK IS TOO LATE!")
+                        sqldb.setArrivedBlock(b,2)
+                        sqldb.setTransmitedBlock(b,1)                                                                                                                                                          
+                    self.semaphore.release()
                 else:
+                    self.workersemaphore.release()
+                    self.semaphore.acquire()
                     print("BLOCK IS TOO LATE!")                        
                     sqldb.setArrivedBlock(b,2)
-                sqldb.setTransmitedBlock(b,1)                                                                                                                      
-                self.semaphore.release()                                                    
-                                            
+                    sqldb.setTransmitedBlock(b,1)
+                    self.semaphore.release()                                                                                                                                   
+                                         
             else:
                 self.workersemaphore.release()
                 self.semaphore.acquire()
@@ -996,7 +1013,7 @@ class Node(object):
                                     checkProof, subUser = validations.validateProofHash(b,user_stake,self.cons)
                                     if(checkProof):
                                         status = self.commitBlock(message = [b],t = 2)                                        
-                                del self.msg_arrivals[i][j]
+                            del self.msg_arrivals[i][j]
                             #else:
                             #    nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
                             #    currentRound =  int(math.floor((float(nowTime) - float(parameter.GEN_ARRIVE_TIME))/ parameter.timeout))
@@ -1032,15 +1049,36 @@ class Node(object):
         first = True
         while True and not self.k.is_set():
             self.start.wait()
-            #self.f.wait()            
-            if((nowTime - prevTime) >= parameter.timeout):
+            #if((nowTime - prevTime) >= parameter.timeout and self.startMine):
+            if(self.startMine):
+                prevTime = float(time.mktime(datetime.datetime.now().timetuple()))
                 currentRound =  int(math.floor((float(time.mktime(datetime.datetime.now().timetuple()))  - float(parameter.GEN_ARRIVE_TIME))/ parameter.timeout))                                
                 print("CURRENT_ROUND: ", currentRound)
-                #self.semaphore.acquire()
-                #self.listen_signal.set() #check if buffer has same block to insert before mine
-                #time.sleep(0.1) #wait a few time to guaranteed that listen thread get the semaphore first
-                #self.semaphore.release()
-                if(status): 
+
+                #self.stableBlock() #stableround
+                self.semaphore.acquire()
+                if(self.fmine):                            
+                    print("########STARTING MINE NEW BLOCK#########")
+                    print("ROUND: ", currentRound)
+                    self.round = currentRound
+                    self.generateNewblock(currentRound)
+                self.stableBlock() #check stable block
+                #start_new_thread(self.stableBlock)    
+                if((nowTime - self.starttime) >= parameter.TEST):
+                    self.startMine = False                                             
+                self.semaphore.release()
+
+                nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
+                if(nowTime - prevTime < parameter.timeout):
+                    print("ROUND SLEEP TIME: ",parameter.timeout - (nowTime - prevTime))
+                    if((parameter.timeout - (nowTime - prevTime)) > 0):
+                        time.sleep(parameter.timeout - (nowTime - prevTime))           
+                nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
+            else:
+                time.sleep(1)    
+                nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
+
+                '''if(status): 
                     if (currentRound - 1) in self.sendbf:
                         del self.sendbf[currentRound - 1]                           
                     self.stableBlock() #stableround
@@ -1093,6 +1131,8 @@ class Node(object):
                     nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
                     print("NowTime: ", nowTime)
                     print("prevTime:", prevTime)
+            else:        
+                time.sleep(1)'''
 
     def generateNewblock(self, round):
         """ Loop for PoS in case of solve challenge, returning new Block object """
@@ -1605,8 +1645,9 @@ class Node(object):
                 self.rpcsocket.send_pyobj(p)
             elif cmd == rpc.MSG_CONNECT:
                 self.rpcsocket.send_string('Starting neighbor connect...')
+                startTime = float(messages[1])
                 #thread that control start node and neighbor connecting
-                msg_start_peers = threading.Thread(name='startnode', target=self.startnode, kwargs={'ipaddr':self.ipaddr})
+                msg_start_peers = threading.Thread(name='startnode', target=self.startnode, kwargs={'ipaddr':self.ipaddr,'startTime':startTime})
                 msg_start_peers.start()
                 self.threads.append(msg_start_peers)
             elif cmd == rpc.MSG_FMINE:
@@ -1616,10 +1657,13 @@ class Node(object):
                 self.rpcsocket.send_string('setting node stake...')
                 stake = messages[1]
                 self.setStake(stake)
-            elif cmd == rpc.MSG_EXPLORER:                
+            elif cmd == rpc.MSG_EXPLORER:  
+                print("MSGEXPLORER")
                 num = messages[1]
+                print("NUM: ", num)                              
                 node = hashlib.sha256(str(self.ipaddr)).hexdigest()
                 reply = sqldb.explorer(num,node)
+                print(reply)
                 self.rpcsocket.send_pyobj(reply)
             elif cmd == rpc.MSG_TRANS:
                 num = messages[1]

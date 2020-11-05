@@ -174,7 +174,7 @@ def dbConnect():
 
     db.commit()
     db.close()
-
+       
 def isLeaf(index):
     try:
         db = sqlite3.connect(databaseLocation,timeout=40)
@@ -339,6 +339,7 @@ def reversionBlock(round, lround, commit, db = None):
                         cursor.execute("SELECT * FROM localChains WHERE hash = '%s'" %item[3])
                         item = cursor.fetchone()
                         if not item:
+                            db.close()
                             return lround, False, commit
 
                 deltar = (round - parameter.roundTolerancy) - query[2]
@@ -1795,69 +1796,83 @@ def explorer(num,node='-1'):
     numblockstable = 0
     lateblocks = 0
     numblocks = 0
-    try:
-        db = sqlite3.connect(databaseLocation)
-        cursor = db.cursor()
-        #calculating performance
-        cursor.execute("SELECT * FROM localChains WHERE id > ((SELECT MAX(id) FROM localChains WHERE stable = 1) - %d) and stable = 1 and round <> 0" %int(num))
-        queries = cursor.fetchall()
-        sround = queries[0][2]
-        if(queries):
-            numblockstable = len(queries)
-            print(queries)
-            for query in queries:
-                avgconf = avgconf + float(1) / float(query[14] - query[2])
-            avgconf = avgconf / len(queries)
+    numsuc = 0
+    mainchainProducedBlock = 0
+    allblockswithconfirmed = 0
+    #try:
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    #calculating performance
+    cursor.execute("SELECT * FROM localChains WHERE stable = 1 and round <> 0")
+    queries = cursor.fetchall()
+    if(queries):
+        numblockstable = len(queries)
+        print(queries)
+        for query in queries:
+            avgconf = avgconf + float(1) / float(query[14] - query[2])
+            #blocks produced on main chain
+            cursor.execute("SELECT COUNT(*) FROM log_block WHERE node = '%s' and prev_hash = '%s' and round = %d and id = %d" %(node,query[3],int(query[2]),int(query[1])))
+            mblocks = cursor.fetchone()
+            if(mblocks):
+               mainchainProducedBlock = mainchainProducedBlock + mblocks[0] 
+                #print("mainchainProducedBlock: ", mainchainProducedBlock)  
+            cursor.execute("SELECT COUNT(*) FROM log_block WHERE node = '%s' and id = %d" %(node,int(query[1])))         
+            mblocks = cursor.fetchone()
+            if(mblocks):
+                allblockswithconfirmed = allblockswithconfirmed + mblocks[0]
+        avgconf = avgconf / len(queries)
         
-        #calculating performance
-        cursor.execute("SELECT * FROM reversion WHERE sround > %d" %sround)
-        queries = cursor.fetchall()
-        if(queries):
-            callsync = len(queries)
-            for query in queries:
-                #sync[query[0],query[1],query[2]] = []
-                cursor.execute("SELECT * FROM block_reversion WHERE idreversion = %d" %int(query[0]))
-                revqueries = cursor.fetchall()
-                if(revqueries):
-                    callsyncrev = callsyncrev + 1
-                    for revquery in revqueries:
-                        numrevblock = numrevblock + 1
-                        #sync[query[0],query[1],query[2]] = sync[query[0],query[1],query[2]] + [[revquery[1], revquery[2], revquery[3], revquery[4]]]       
+    
+    #calculating performance
+    cursor.execute("SELECT * FROM reversion")
+    queries = cursor.fetchall()
+    if(queries):
+        callsync = len(queries)
+        for query in queries:
+            #sync[query[0],query[1],query[2]] = []
+            cursor.execute("SELECT * FROM block_reversion WHERE idreversion = %d" %int(query[0]))
+            revqueries = cursor.fetchall()
+            if(revqueries):
+                callsyncrev = callsyncrev + 1
+                for revquery in revqueries:
+                    numrevblock = numrevblock + 1
+                    #sync[query[0],query[1],query[2]] = sync[query[0],query[1],query[2]] + [[revquery[1], revquery[2], revquery[3], revquery[4]]]       
+        
+    #get arrived blocks
+    cursor.execute("SELECT count(*) FROM arrived_block WHERE node <> '%s'" %node)
+    queries = cursor.fetchone()
+    if(queries):
+        receivedblocks = queries[0]
+
+    #get produced blocks
+    cursor.execute("SELECT count(*) FROM log_block WHERE node == '%s'" %node)
+    queries = cursor.fetchone()
+    if(queries):
+        numblocks = queries[0]
+
+    #get succesfully raffle number
+    cursor.execute("SELECT sum(subuser) FROM arrived_block WHERE node == '%s'" %node)
+    queries = cursor.fetchone()
+    if(queries[0]):
+        numsuc = queries[0]  
+    
+    #get rounds to produce all blocks
+    cursor.execute("SELECT (max(round) - min(round)) FROM arrived_block")
+    queries = cursor.fetchone()
+    if(queries):
+        numround = queries[0]        
             
-        #get arrived blocks
-        nowTime = time.mktime(datetime.datetime.now().timetuple())
-        currentRound = int(math.floor((float(nowTime) - float(parameter.GEN_ARRIVE_TIME))/parameter.timeout))
-        cursor.execute("SELECT count(*) FROM arrived_block WHERE round >= %d and round < %d and node <> '%s'" %(sround,currentRound,node))
-        queries = cursor.fetchone()
-        if(queries):
-            receivedblocks = queries[0]
+    #late block number
+    cursor.execute("SELECT COUNT(*) FROM arrived_block WHERE status = 2")
+    queries = cursor.fetchone()
+    if(queries):
+        lateblocks = queries[0]
+    
+    db.close()
+    #except Exception as e:
+    #    print(str(e))
 
-        #get produced blocks
-        cursor.execute("SELECT count(*) FROM arrived_block WHERE round >= %d and round < %d" %(sround,currentRound))
-        queries = cursor.fetchone()
-        if(queries):
-            numblocks = queries[0]
-            
-        
-        #get rounds to produce all blocks
-        cursor.execute("SELECT (max(round) - min(round)) FROM arrived_block WHERE round >= %d" %sround)
-        queries = cursor.fetchone()
-        if(queries):
-            numround = queries[0]        
-               
-        #late block number
-        cursor.execute("SELECT COUNT(*) FROM arrived_block WHERE status = 2")
-        queries = cursor.fetchone()
-        if(queries):
-            lateblocks = queries[0]
-        
-
-
-        db.close()
-    except Exception as e:
-        print(str(e))
-
-    return [avgconf,callsync,callsyncrev,numrevblock,receivedblocks,numround,numblockstable,lateblocks,numblocks]
+    return [avgconf,callsync,callsyncrev,numrevblock,receivedblocks,numround,numblockstable,lateblocks,numblocks,numsuc,mainchainProducedBlock,allblockswithconfirmed]
 
 
 
