@@ -9,7 +9,179 @@ def structCommitted(tau,epsilon):
     committed = {}
     sync_threshold = {}
     deltar = 2
-    if(tau == 10):
+    if(tau == 25):
+        if epsilon == 0.00000001:
+            committed[deltar] = 30
+            committed[deltar + 1] = 24
+            committed[deltar + 2] = 22
+            committed[deltar + 3] = 21
+            committed[deltar + 4] = 20
+            committed[deltar + 5] = 19
+            committed[deltar + 6] = 19
+            committed[deltar + 7] = 18
+            committed[deltar + 8] = 18
+
+        elif epsilon == 0.000001:
+            committed[deltar] = 27
+            committed[deltar + 1] = 22
+            committed[deltar + 2] = 20
+            committed[deltar + 3] = 19
+            committed[deltar + 4] = 19
+            committed[deltar + 5] = 18
+            committed[deltar + 6] = 18
+            committed[deltar + 7] = 18
+            committed[deltar + 8] = 18
+
+        elif epsilon == 0.0001:
+            committed[deltar] = 24
+            committed[deltar + 1] = 20
+            committed[deltar + 2] = 19
+            committed[deltar + 3] = 18
+            committed[deltar + 4] = 17
+            committed[deltar + 5] = 17
+            committed[deltar + 6] = 17
+            committed[deltar + 7] = 17
+            committed[deltar + 8] = 17
+        else:
+            print("epsilon error!")
+
+        sync_threshold[deltar] = 17
+        sync_threshold[deltar + 1] = 19
+        sync_threshold[deltar + 2] = 19
+        sync_threshold[deltar + 3] = 19
+        sync_threshold[deltar + 4] = 19
+        sync_threshold[deltar + 5] = 19
+
+    if(tau == 19):
+        if epsilon == 0.00000001:
+            committed[deltar] = 25
+            committed[deltar + 1] = 20
+            committed[deltar + 2] = 18
+            committed[deltar + 3] = 17
+            committed[deltar + 4] = 16
+            committed[deltar + 5] = 15
+            committed[deltar + 6] = 15
+            committed[deltar + 7] = 15
+            committed[deltar + 8] = 15
+
+        elif epsilon == 0.000001:
+            committed[deltar] = 22
+            committed[deltar + 1] = 18
+            committed[deltar + 2] = 17
+            committed[deltar + 3] = 16
+            committed[deltar + 4] = 15
+            committed[deltar + 5] = 15
+            committed[deltar + 6] = 14
+            committed[deltar + 7] = 14
+            committed[deltar + 8] = 14
+
+        elif epsilon == 0.0001:
+            committed[deltar] = 19
+            committed[deltar + 1] = 16
+            committed[deltar + 2] = 15
+            committed[deltar + 3] = 14
+            committed[deltar + 4] = 14
+            committed[deltar + 5] = 14
+            committed[deltar + 6] = 14
+            committed[deltar + 7] = 14
+            committed[deltar + 8] = 13
+        else:
+            print("epsilon error!")
+
+        sync_threshold[deltar] = 12
+        sync_threshold[deltar + 1] = 13
+        sync_threshold[deltar + 2] = 13
+        sync_threshold[deltar + 3] = 14
+        sync_threshold[deltar + 4] = 14
+        sync_threshold[deltar + 5] = 14
+
+    if(tau == 16):
+        if epsilon == 0.00000001:
+            committed[deltar] = 22
+            committed[deltar + 1] = 18
+            committed[deltar + 2] = 16
+            committed[deltar + 3] = 15
+            committed[deltar + 4] = 14
+            committed[deltar + 5] = 14
+            committed[deltar + 6] = 14
+            committed[deltar + 7] = 13
+            committed[deltar + 8] = 13
+
+        elif epsilon == 0.000001:
+            committed[deltar] = 20
+            committed[deltar + 1] = 16
+            committed[deltar + 2] = 15
+            committed[deltar + 3] = 14
+            committed[deltar + 4] = 13
+            committed[deltar + 5] = 13
+            committed[deltar + 6] = 12
+            committed[deltar + 7] = 12
+            committed[deltar + 8] = 12
+
+        elif epsilon == 0.0001:
+            committed[deltar] = 17
+            committed[deltar + 1] = 14
+            committed[deltar + 2] = 13
+            committed[deltar + 3] = 13
+            committed[deltar + 4] = 12
+            committed[deltar + 5] = 12
+            committed[deltar + 6] = 11
+            committed[deltar + 7] = 11
+            committed[deltar + 8] = 11
+        else:
+            print("epsilon error!")
+
+        sync_threshold[deltar] = 10
+        sync_threshold[deltar + 1] = 11
+        sync_threshold[deltar + 2] = 12
+        sync_threshold[deltar + 3] = 13
+        sync_threshold[deltar + 4] = 13
+        sync_threshold[deltar + 5] = 13
+
+    if(tau == 13):
+        if epsilon == 0.00000001:
+            committed[deltar] = 20
+            committed[deltar + 1] = 15
+            committed[deltar + 2] = 14
+            committed[deltar + 3] = 13
+            committed[deltar + 4] = 12
+            committed[deltar + 5] = 12
+            committed[deltar + 6] = 11
+            committed[deltar + 7] = 11
+            committed[deltar + 8] = 11
+
+        elif epsilon == 0.000001:
+            committed[deltar] = 17
+            committed[deltar + 1] = 14
+            committed[deltar + 2] = 13
+            committed[deltar + 3] = 12
+            committed[deltar + 4] = 11
+            committed[deltar + 5] = 11
+            committed[deltar + 6] = 11
+            committed[deltar + 7] = 10
+            committed[deltar + 8] = 10
+
+        elif epsilon == 0.0001:
+            committed[deltar] = 15
+            committed[deltar + 1] = 12
+            committed[deltar + 2] = 11
+            committed[deltar + 3] = 10
+            committed[deltar + 4] = 10
+            committed[deltar + 5] = 10
+            committed[deltar + 6] = 10
+            committed[deltar + 7] = 10
+            committed[deltar + 8] = 10
+        else:
+            print("epsilon error!")
+
+        sync_threshold[deltar] = 8
+        sync_threshold[deltar + 1] = 9
+        sync_threshold[deltar + 2] = 10
+        sync_threshold[deltar + 3] = 10
+        sync_threshold[deltar + 4] = 10
+        sync_threshold[deltar + 5] = 10
+
+    elif(tau == 10):
         if epsilon == 0.00000001:
             committed[deltar] = 17
             committed[deltar + 1] = 13
@@ -94,7 +266,7 @@ def structCommitted(tau,epsilon):
         sync_threshold[deltar + 2] = 4
         sync_threshold[deltar + 3] = 4
         sync_threshold[deltar + 4] = 5
-        sync_threshold[deltar + 5] = 5 
+        sync_threshold[deltar + 5] = 5
 
     elif(tau == 4):
         if epsilon == 0.00000001:
@@ -176,11 +348,11 @@ def TrustandPeers():
     contIPs = 0
     for i in range(0,cont+2):
         if i == 0:
-            first = 3
+            first = 1
         else:
             first = 0
         for j in range(first,256):            
-            trusted=trusted+['10.1'+str(i)+'.'+str(j)]
+            trusted=trusted+['10.0'+str(i)+'.'+str(j)]
             contIPs=contIPs+1
             if(contIPs == trust):
                 break
@@ -202,12 +374,12 @@ def TrustandPeers():
     #print cont
     for i in range(0,cont+2):
         if i == 0:
-            first = 2
+            first = 1
         else:
             first = 0
         for j in range(first,256):
-            #if (i != 1) or (i == 1 and j < 146 or j > 165):
-            peers=peers+['10.1.'+str(i)+'.'+str(j)]
+            #if (i != 2) or (j >= 120 or j <= 89):
+            peers=peers+['10.0.'+str(i)+'.'+str(j)]
             contIPs=contIPs+1
             if(contIPs == nodes):
                 break
@@ -378,7 +550,7 @@ HASH_FIRST_TRANSACTION = hashlib.sha256(str('PPoS the best distribution consensu
 
 FIRST_HASH = "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
 
-AVG_LATENCY = [24,24,24,24,24,24,24,24,24,24]
+AVG_LATENCY = 5
 
 #TOLERANCY = timeout * 1.4
 
@@ -388,9 +560,9 @@ tol = 2 #round tolerance
 
 round_buffer = 1 #round interval that a block can wait on the listen buffer
 
-epsilon = 0.00000001 #reversion prob.
+epsilon = 0.000001 #reversion prob.
 
-TEST = 2000 #test time
+TEST = 1800 #test time
 
 W = 10000 #all network coins
 
@@ -400,19 +572,19 @@ hW = int(W * float(1 - q)) #honest coins
 
 qW = int(W * float(q)) #dishonest coins
 
-tal = 4 #proposer parameter
+tal = 10 #proposer parameter
 
 txround = 1000
 
 difficulty = float(math.log(W,2) - math.log(tal,2)) 
 
-nodes = 400 #num nodes
+nodes = 4 #num nodes
 
-k = 3 #fraction of connected peers
+k = 2 #fraction of connected peers
 trust = 2 #fraction of trust nodes
 theta = 0.5 #threshold
-
 trusted,peers = TrustandPeers()
+
 #defineNeighbors(peers)
 
 #define distribution stake

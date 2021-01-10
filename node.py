@@ -83,7 +83,7 @@ class Node(object):
 
 
         #new bloom filter object
-        self.bloomf = BloomFilter(4000)
+        self.bloomf = BloomFilter(1000)
 
         #bloom filter to control sending block process
         self.checkblock = BloomFilter(1200)
@@ -144,8 +144,7 @@ class Node(object):
 
         self.threads = 0
 
-        #delays of the blocks transmition. each node has its own delay.
-        #the delay uses a poison distribution with mean 8 seconds
+        
         self.msg_arrivals = {}  
         self.inserted = {}
         self.send_block = {}
@@ -153,7 +152,9 @@ class Node(object):
         #self.msg_arrivals_out_order = {}
         #self.inserted_out_order = {}
         #index = parameter.peers.index(self.ipaddr)
-        #self.delay = exponential_latency(parameter.AVG_LATENCY[index])
+        #delays of the blocks transmition. each node has its own delay.
+        #the delay uses a poison distribution with mean 8 seconds
+        self.delay = exponential_latency(parameter.AVG_LATENCY)
 
         #db connection
         self.db = sqldb.connect()
@@ -366,9 +367,8 @@ class Node(object):
 
         nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
         print("startTime: ", startTime)        
-        print("sleeping time: %f" %(1200 - (nowTime - float(startTime))))
-        if((1200 - (nowTime - startTime)) > 0):
-            time.sleep(1200 - (nowTime - startTime))
+        if((300 - (nowTime - startTime)) > 0):
+            time.sleep(300 - (nowTime - startTime))
         self.startThreads()
 
 #########neighbor connect function ###############
@@ -622,7 +622,7 @@ class Node(object):
                     blockHash = hashlib.sha256(str(block_header)).hexdigest()
                     print("HASH BLOCK: ", blockHash)
                     print("IP NODE: ", self.ipaddr)
-                    new_block = Block(block.index + 1, block.hash, round, self.node, arrive_time, blockHash, tx, subUser, proofHash)
+                    new_block = Block(block.index + 1, block.hash, round, self.node, arrive_time, blockHash, tx, subUser, proofHash, arrive_time)
                     sqldb.setArrivedBlock(new_block,1)
                     sqldb.setLogBlock(new_block, 1)
                     status = chaincontrol.addBlockLeaf(block=new_block)
@@ -633,6 +633,8 @@ class Node(object):
                             bloom_filter = self.bloomf.new_filter()
                             self.bloomf.add(self.ipaddr, bloom_filter)
                             message = [new_block, self.ipaddr, str(self.stake),bloom_filter,self.ipaddr]
+                            #delay = self.delay()
+                            #time.sleep(delay)
                             start_new_thread(self.sendControl, (message,))
                             #self.insertNewBlock(message)                            
                             #self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, str(self.stake), pickle.dumps(new_block, 2), pickle.dumps(values,2)])                    
@@ -797,6 +799,18 @@ class Node(object):
             return True, sumsuc     
         return False  
 
+    def sendlateblock(self,message,ip):
+        try:
+            delay = self.delay()
+            time.sleep(delay)
+            bsend = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            bsend.connect((ip,self.port))                                        
+            bsend.send(message)
+            m = bsend.recv(4096)
+            bsend.close()
+        except Exception as e:
+            print(str(e))
+
     def sendControl(self,message):
         values = parameter.pblock
         trust = parameter.trusted
@@ -818,33 +832,6 @@ class Node(object):
         setsend = []
         c = 0                    
         for k in self.peers:
-            '''if ip == self.ipaddr and self.ipaddr not in trust:
-                if k in trust and c == 0:
-                    status = True
-                    c = 1
-                elif k not in trust:
-                    status = True
-            elif ip == self.ipaddr and self.ipaddr in trust:
-                status = True
-            
-            elif self.ipaddr in trust and srcaddr not in trust:
-                status = True           
-
-            elif self.ipaddr in trust and srcaddr in trust:
-                if k not in trust:
-                    status = True
-                else:
-                    status = False
-
-            elif k in trust and c == 0 and srcaddr not in trust:
-                status = True
-                c = 1
-            elif k not in trust and srcaddr not in trust:
-                status = True                            
-            else:
-                status = False
-                
-            if(status):'''                        
             if(not self.bloomf.check(k['ipaddr'],bloom_filter)):    
                 setsend = setsend + [k['ipaddr']]
                 self.bloomf.add(k['ipaddr'],bloom_filter)
@@ -854,11 +841,14 @@ class Node(object):
         #print("####START SEND BLOCK####")
         #print(b.hash)                        
         for k in setsend:
+        #for k in self.peers:
+            #start_new_thread(self.sendlateblock, (message,k))
             #print("DESTINATION")
             #print(k)
             try:
                 bsend = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                bsend.connect((k,self.port))                                        
+                bsend.connect((k,self.port))
+                #bsend.connect((k['ipaddr'],self.port))                                        
                 bsend.send(message)
                 m = bsend.recv(4096)
                 bsend.close()
@@ -968,8 +958,7 @@ class Node(object):
                 self.workersemaphore.release()
                 self.semaphore.acquire()
                 sqldb.setTransmitedBlock(b,1)
-                self.semaphore.release()                
-            
+                self.semaphore.release()                  
         else:
             print("LISTEN: MESSAGE NOT FOUND")       
    
@@ -2054,6 +2043,15 @@ def main():
         n.miner_thread.start()
         n.start.set()
         n.f.set()
+
+    print("starting peer...")
+    h = hashlib.sha256(str(args.ipaddr)).hexdigest()            
+    s = parameter.numStake[1][h][0]
+    n.setStake(s)
+    startTime = 1610285279.0
+    msg_start_peers = threading.Thread(name='startnode', target=n.startnode, kwargs={'ipaddr':args.ipaddr,'startTime':startTime})
+    msg_start_peers.start()
+                
 
     try:
         while True:

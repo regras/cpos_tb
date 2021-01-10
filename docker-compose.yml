@@ -3,27 +3,7 @@ services:
   ppos:
     image: diegofgm/martins:ppos2.0
     environment:
-      STATIC_IP: 10.1.0.2
-      STATIC_IP: 10.1.0.3
-      STATIC_IP: 10.1.0.4
-      STATIC_IP: 10.1.0.5
-      STATIC_IP: 10.1.0.6
-      STATIC_IP: 10.1.0.7
-      STATIC_IP: 10.1.0.8
-      STATIC_IP: 10.1.0.9
-      STATIC_IP: 10.1.0.10
-      STATIC_IP: 10.1.0.11
-      STATIC_IP: 10.1.0.12
-      STATIC_IP: 10.1.0.13
-      STATIC_IP: 10.1.0.14
-      STATIC_IP: 10.1.0.15
-      STATIC_IP: 10.1.0.16
-      STATIC_IP: 10.1.0.17
-      STATIC_IP: 10.1.0.18
-      STATIC_IP: 10.1.0.19
-      STATIC_IP: 10.1.0.20
-      STATIC_IP: 10.1.0.21
-      STATIC_IP: 10.1.0.22
+ 10.1.0.22
       STATIC_IP: 10.1.0.23
       STATIC_IP: 10.1.0.24
       STATIC_IP: 10.1.0.25
@@ -48,7 +28,7 @@ services:
       STATIC_IP: 10.1.0.44
       STATIC_IP: 10.1.0.45
       STATIC_IP: 10.1.0.46
-      STATIC_IP: 10.1.0.47
+    STATIC_IP: 10.1.0.47
       STATIC_IP: 10.1.0.48
       STATIC_IP: 10.1.0.49
       STATIC_IP: 10.1.0.50

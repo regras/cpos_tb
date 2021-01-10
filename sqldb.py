@@ -142,6 +142,7 @@ def dbConnect():
       tx text,
       status integer,
       subuser integer,
+      create_time text,
       UNIQUE (hash))""")
 
     cursor.execute("""CREATE TABLE IF NOT EXISTS log_block (
@@ -798,7 +799,7 @@ def setArrivedBlock(b,accepted,db=None):
             cursor.execute("SELECT * from arrived_block where hash = '%s'" %b.hash)
             query = cursor.fetchone()
             if(not query):
-                cursor.execute('INSERT INTO arrived_block (id, round, arrive_time, node, prev_hash, hash,proof_hash,tx,status,subuser) VALUES (?,?,?,?,?,?,?,?,?,?)',(
+                cursor.execute('INSERT INTO arrived_block (id, round, arrive_time, node, prev_hash, hash,proof_hash,tx,status,subuser,create_time) VALUES (?,?,?,?,?,?,?,?,?,?,?)',(
                     b.__dict__['index'],
                     b.__dict__['round'],
                     b.__dict__['arrive_time'],
@@ -808,7 +809,8 @@ def setArrivedBlock(b,accepted,db=None):
                     b.__dict__['proof_hash'],
                     b.__dict__['tx'],
                     accepted,
-                    b.__dict__['subuser']))
+                    b.__dict__['subuser'],
+                    b.__dict__['create_time']))
                 db.commit()
             db.close()
         except sqlite3.IntegrityError:
@@ -1039,7 +1041,6 @@ def writeChainLeaf(idChain,b,firstBlock=False,db=None):
                 suc,
                 '0'))
         db.commit()
-
        
     except sqlite3.IntegrityError:
         logger.warning('db insert duplicated block in the same chain')
@@ -1774,16 +1775,28 @@ def addBlocksReversion(fblock,lblock,idreversion,db=None):
         print(str(e))
 
 def get_trans(num):
-    try:
-        db = sqlite3.connect(databaseLocation)
-        cursor = db.cursor()
-        cursor.execute('SELECT COUNT(*) FROM transmit_block WHERE id <= %d' % int(num))  
-        queries = cursor.fetchone()
-        if(queries):
-            return [queries[0]]
-    except Exception as e:
-        print(str(e))
-    return [None]
+    #try:
+    reply = []
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    cursor.execute('SELECT COUNT(*) FROM transmit_block WHERE id <= %d' % int(num))  
+    queries = cursor.fetchone()
+    if(queries):
+        reply = reply + [queries[0]]
+    cursor.execute('SELECT arrive_time, create_time FROM arrived_block WHERE id <= %d and status <= 2' %int(num))
+    queries = cursor.fetchall()
+    tavg = 0
+    if(queries):
+        for query in queries:
+            print(query)
+            print(query[1])
+            tavg = tavg + (float(query[0]) - float(query[1]))
+        tavg = tavg / len(queries)
+        reply = reply + [tavg]
+    return reply
+    #except Exception as e:
+    #print(str(e))
+    return [None,None]
 
 def explorer(num,node='-1'):
     receivedblocks = 0

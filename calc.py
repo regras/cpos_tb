@@ -35,7 +35,7 @@ def Combinations(m,n):
 ##################################################
 
 #########input parameters#########
-smean = 13
+smean = 17
 round = 1
 #fileName = 'results.txt'
 #################################

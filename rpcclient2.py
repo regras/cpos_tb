@@ -78,6 +78,8 @@ exit                Terminate and exit the node.py program running
                 peers = parameter.peers
                 numtrans = 0
                 listnumtrans = []
+                numtavg = 0
+                listnumtavg = []
                 i = 0
                 while (i < len(peers)):
                     try:                         
@@ -88,19 +90,30 @@ exit                Terminate and exit the node.py program running
                         print("Transmission for node : ", peers[i])
                         reqsocket.send_multipart([MSG_TRANS,sys.argv[2]])
                         reply = reqsocket.recv_pyobj()
-                        if(reply[0]):
+                        if(reply):
                             numtrans = numtrans + reply[0]
                             listnumtrans = listnumtrans + [int(reply[0])]
+
+                            numtavg = numtavg + reply[1]
+                            listnumtavg = listnumtavg + [int(reply[1])]
                     except Exception as e:
                             print(str(e))
                     i = i + 1
+
                 avgtrans = float(numtrans) / len(listnumtrans)
                 variance = statistics.pvariance(listnumtrans,avgtrans)
+
+                avgtavg = float(numtavg) / len(listnumtavg)
+                variancetavg = statistics.pvariance(listnumtavg,avgtavg)
                 for k in listnumtrans:
                     print(k)
                 print("total transmission: %d" %numtrans)
                 print("avg transmission: ", avgtrans)
                 print("variance: ", variance)
+                print("\n")
+
+                print("propagation time / round time: ", avgtavg)
+                print("variance: ", variancetavg)
 
                 
             elif(MSG_EXPLORER == sys.argv[1]):
