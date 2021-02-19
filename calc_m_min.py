@@ -1,6 +1,6 @@
 #import parameter
 import parameter
-
+from decimal import Decimal
 ############combinations##########
 def Combinations(m,n):
       # calcula o fatorial de m
@@ -35,19 +35,20 @@ def Combinations(m,n):
 ##################################################
 
 #########input parameters#########
-smean = 6
+smean = 189
 round = 1
 #fileName = 'results_mean_smaller.txt'
 #################################
 #while(smean >= 1):
-round = 5
+round = 2
 tprob = 1
 #    while(tprob >= (10**-6) and round <= 10):
         ####define initial parameters####
 p = float(parameter.tal) / float(parameter.W)    
 limit = round * smean - 1
 #limit = 25
-tprob = 0
+#tprob = 0
+tprob = Decimal(0)
 ################################
 while(limit >=0):
     q = MixedIntegerLinearProgram()
@@ -62,7 +63,8 @@ while(limit >=0):
 
     #calc probability
     for k in a:
-        prob = 1
+        #prob = 1
+        prob = Decimal(1)
         for i in range(0,round):
             index = "("+str(parameter.W)+","+str(k[i])+")"
             if(index in parameter.combination):
@@ -70,7 +72,8 @@ while(limit >=0):
             else:
                 print("combinations not present in list")
                 comb = Combinations(parameter.W,k[i])
-            prob_i = comb * (p**k[i]) * ((1-p)**(parameter.W - k[i]))
+            #prob_i = comb * (p**k[i]) * ((1-p)**(parameter.W - k[i]))
+            prob_i = Decimal(comb) * Decimal(p**k[i]) * Decimal((1-p)**(parameter.W - k[i]))
             prob = prob * prob_i
         tprob = tprob + prob
     limit = limit - 1

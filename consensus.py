@@ -24,6 +24,7 @@ MSG_REQBLOCK = 'reqblock'
 MSG_REQBLOCKS = 'reqblocks'
 MSG_REQPEER = 'reqpeers'
 MSG_TX = 'transaction'
+MSG_HEADER = 'header'
 
 def handleMessages(bc, messages, node=None):
     cmd = messages[0] if isinstance(messages, list) else str(messages)

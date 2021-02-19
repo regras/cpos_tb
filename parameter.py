@@ -9,6 +9,538 @@ def structCommitted(tau,epsilon):
     committed = {}
     sync_threshold = {}
     deltar = 2
+    if(tau == 100):
+        if epsilon == 0.00000001:
+            committed[deltar] = 81
+            committed[deltar + 1] = 72
+            committed[deltar + 2] = 72
+            committed[deltar + 3] = 72
+            committed[deltar + 4] = 72
+            committed[deltar + 5] = 72
+            committed[deltar + 6] = 72
+            committed[deltar + 7] = 72
+            committed[deltar + 8] = 72
+        elif epsilon == 0.000001:
+            committed[deltar] = 76
+            committed[deltar + 1] = 68
+            committed[deltar + 2] = 68
+            committed[deltar + 3] = 68
+            committed[deltar + 4] = 68
+            committed[deltar + 5] = 68
+            committed[deltar + 6] = 68
+            committed[deltar + 7] = 68
+            committed[deltar + 8] = 68 
+        #elif epsilon == 0.0001:
+        #    committed[deltar] = 54
+        #    committed[deltar + 1] = 60
+        #    committed[deltar + 2] = 54
+        #    committed[deltar + 3] = 54
+        #    committed[deltar + 4] = 54
+        #    committed[deltar + 5] = 54
+        #    committed[deltar + 6] = 54
+        #    committed[deltar + 7] = 54
+        #    committed[deltar + 8] = 54
+        else:
+            print("epsilon error!")
+        sync_threshold[deltar] = 84
+        sync_threshold[deltar + 1] = 89
+        sync_threshold[deltar + 2] = 89
+        sync_threshold[deltar + 3] = 89
+        sync_threshold[deltar + 4] = 89
+        sync_threshold[deltar + 5] = 89
+    if(tau == 82):
+        if epsilon == 0.00000001:
+            committed[deltar] = 69
+            committed[deltar + 1] = 62
+            committed[deltar + 2] = 62
+            committed[deltar + 3] = 62
+            committed[deltar + 4] = 62
+            committed[deltar + 5] = 62
+            committed[deltar + 6] = 62
+            committed[deltar + 7] = 62
+            committed[deltar + 8] = 62
+        elif epsilon == 0.000001:
+            committed[deltar] = 59
+            committed[deltar + 1] = 65
+            committed[deltar + 2] = 58
+            committed[deltar + 3] = 58
+            committed[deltar + 4] = 58
+            committed[deltar + 5] = 58
+            committed[deltar + 6] = 58
+            committed[deltar + 7] = 58
+            committed[deltar + 8] = 58 
+        elif epsilon == 0.0001:
+            committed[deltar] = 54
+            committed[deltar + 1] = 60
+            committed[deltar + 2] = 54
+            committed[deltar + 3] = 54
+            committed[deltar + 4] = 54
+            committed[deltar + 5] = 54
+            committed[deltar + 6] = 54
+            committed[deltar + 7] = 54
+            committed[deltar + 8] = 54
+        else:
+            print("epsilon error!")
+        sync_threshold[deltar] = 68
+        sync_threshold[deltar + 1] = 71
+        sync_threshold[deltar + 2] = 71
+        sync_threshold[deltar + 3] = 71
+        sync_threshold[deltar + 4] = 71
+        sync_threshold[deltar + 5] = 71
+
+    if(tau == 73):
+        if epsilon == 0.00000001:
+            committed[deltar] = 63
+            committed[deltar + 1] = 55
+            committed[deltar + 2] = 55
+            committed[deltar + 3] = 55
+            committed[deltar + 4] = 55
+            committed[deltar + 5] = 55
+            committed[deltar + 6] = 55
+            committed[deltar + 7] = 55
+            committed[deltar + 8] = 55
+        elif epsilon == 0.000001:
+            committed[deltar] = 59
+            committed[deltar + 1] = 52
+            committed[deltar + 2] = 52
+            committed[deltar + 3] = 52
+            committed[deltar + 4] = 52
+            committed[deltar + 5] = 52
+            committed[deltar + 6] = 52
+            committed[deltar + 7] = 52
+            committed[deltar + 8] = 52 
+        elif epsilon == 0.0001:
+            committed[deltar] = 54
+            committed[deltar + 1] = 49
+            committed[deltar + 2] = 49
+            committed[deltar + 3] = 49
+            committed[deltar + 4] = 49
+            committed[deltar + 5] = 49
+            committed[deltar + 6] = 49
+            committed[deltar + 7] = 49
+            committed[deltar + 8] = 49
+        else:
+            print("epsilon error!")
+        
+        sync_threshold[deltar] = 59
+        sync_threshold[deltar + 1] = 63
+        sync_threshold[deltar + 2] = 63
+        sync_threshold[deltar + 3] = 63
+        sync_threshold[deltar + 4] = 63
+        sync_threshold[deltar + 5] = 63
+    if(tau == 64):
+        if epsilon == 0.00000001:
+            committed[deltar] = 57
+            committed[deltar + 1] = 50
+            committed[deltar + 2] = 50
+            committed[deltar + 3] = 50
+            committed[deltar + 4] = 50
+            committed[deltar + 5] = 50
+            committed[deltar + 6] = 50
+            committed[deltar + 7] = 50
+            committed[deltar + 8] = 50
+        elif epsilon == 0.000001:
+            committed[deltar] = 53
+            committed[deltar + 1] = 47
+            committed[deltar + 2] = 47
+            committed[deltar + 3] = 47
+            committed[deltar + 4] = 47
+            committed[deltar + 5] = 47
+            committed[deltar + 6] = 47
+            committed[deltar + 7] = 47
+            committed[deltar + 8] = 47 
+        elif epsilon == 0.0001:
+            committed[deltar] = 48
+            committed[deltar + 1] = 44
+            committed[deltar + 2] = 44
+            committed[deltar + 3] = 44
+            committed[deltar + 4] = 44
+            committed[deltar + 5] = 44
+            committed[deltar + 6] = 44
+            committed[deltar + 7] = 44
+            committed[deltar + 8] = 44
+        else:
+            print("epsilon error!")
+
+        sync_threshold[deltar] = 51
+        sync_threshold[deltar + 1] = 55
+        sync_threshold[deltar + 2] = 55
+        sync_threshold[deltar + 3] = 55
+        sync_threshold[deltar + 4] = 55
+        sync_threshold[deltar + 5] = 55
+
+    if(tau == 55):
+        if epsilon == 0.00000001:
+            committed[deltar] = 51
+            committed[deltar + 1] = 44
+            committed[deltar + 2] = 44
+            committed[deltar + 3] = 44
+            committed[deltar + 4] = 44
+            committed[deltar + 5] = 44
+            committed[deltar + 6] = 44
+            committed[deltar + 7] = 44
+            committed[deltar + 8] = 44
+        elif epsilon == 0.000001:
+            committed[deltar] = 47
+            committed[deltar + 1] = 41
+            committed[deltar + 2] = 41
+            committed[deltar + 3] = 41
+            committed[deltar + 4] = 41
+            committed[deltar + 5] = 41
+            committed[deltar + 6] = 41
+            committed[deltar + 7] = 41
+            committed[deltar + 8] = 41 
+        elif epsilon == 0.0001:
+            committed[deltar] = 42
+            committed[deltar + 1] = 38
+            committed[deltar + 2] = 38
+            committed[deltar + 3] = 38
+            committed[deltar + 4] = 38
+            committed[deltar + 5] = 38
+            committed[deltar + 6] = 38
+            committed[deltar + 7] = 38
+            committed[deltar + 8] = 38
+        else:
+            print("epsilon error!")
+
+        sync_threshold[deltar] = 43
+        sync_threshold[deltar + 1] = 46
+        sync_threshold[deltar + 2] = 46
+        sync_threshold[deltar + 3] = 46
+        sync_threshold[deltar + 4] = 46
+        sync_threshold[deltar + 5] = 46
+
+    if(tau == 46):
+        if epsilon == 0.00000001:
+            committed[deltar] = 45
+            committed[deltar + 1] = 38
+            committed[deltar + 2] = 35
+            committed[deltar + 3] = 35
+            committed[deltar + 4] = 35
+            committed[deltar + 5] = 35
+            committed[deltar + 6] = 35
+            committed[deltar + 7] = 35
+            committed[deltar + 8] = 35
+        elif epsilon == 0.000001:
+            committed[deltar] = 41
+            committed[deltar + 1] = 36
+            committed[deltar + 2] = 33
+            committed[deltar + 3] = 33
+            committed[deltar + 4] = 33
+            committed[deltar + 5] = 33
+            committed[deltar + 6] = 33
+            committed[deltar + 7] = 33
+            committed[deltar + 8] = 33 
+        elif epsilon == 0.0001:
+            committed[deltar] = 37
+            committed[deltar + 1] = 33
+            committed[deltar + 2] = 33
+            committed[deltar + 3] = 33
+            committed[deltar + 4] = 33
+            committed[deltar + 5] = 33
+            committed[deltar + 6] = 33
+            committed[deltar + 7] = 33
+            committed[deltar + 8] = 33
+        else:
+            print("epsilon error!")
+        sync_threshold[deltar] = 35
+        sync_threshold[deltar + 1] = 38
+        sync_threshold[deltar + 2] = 38
+        sync_threshold[deltar + 3] = 38
+        sync_threshold[deltar + 4] = 38
+        sync_threshold[deltar + 5] = 38
+
+    if(tau == 37):
+        if epsilon == 0.00000001:
+            committed[deltar] = 39
+            committed[deltar + 1] = 32
+            committed[deltar + 2] = 30
+            committed[deltar + 3] = 30
+            committed[deltar + 4] = 30
+            committed[deltar + 5] = 30
+            committed[deltar + 6] = 30
+            committed[deltar + 7] = 30
+            committed[deltar + 8] = 30
+        elif epsilon == 0.000001:
+            committed[deltar] = 35
+            committed[deltar + 1] = 30
+            committed[deltar + 2] = 28
+            committed[deltar + 3] = 28
+            committed[deltar + 4] = 28
+            committed[deltar + 5] = 28
+            committed[deltar + 6] = 28
+            committed[deltar + 7] = 28
+            committed[deltar + 8] = 28 
+        elif epsilon == 0.0001:
+            committed[deltar] = 31
+            committed[deltar + 1] = 27
+            committed[deltar + 2] = 27
+            committed[deltar + 3] = 27
+            committed[deltar + 4] = 27
+            committed[deltar + 5] = 27
+            committed[deltar + 6] = 27
+            committed[deltar + 7] = 27
+            committed[deltar + 8] = 27
+        else:
+            print("epsilon error!")
+        sync_threshold[deltar] = 27
+        sync_threshold[deltar + 1] = 30
+        sync_threshold[deltar + 2] = 30
+        sync_threshold[deltar + 3] = 30
+        sync_threshold[deltar + 4] = 30
+        sync_threshold[deltar + 5] = 30
+    if(tau == 31):
+        if epsilon == 0.00000001:
+            committed[deltar] = 34
+            committed[deltar + 1] = 28
+            committed[deltar + 2] = 26
+            committed[deltar + 3] = 26
+            committed[deltar + 4] = 26
+            committed[deltar + 5] = 26
+            committed[deltar + 6] = 26
+            committed[deltar + 7] = 26
+            committed[deltar + 8] = 26
+        elif epsilon == 0.000001:
+            committed[deltar] = 31
+            committed[deltar + 1] = 26
+            committed[deltar + 2] = 24
+            committed[deltar + 3] = 24
+            committed[deltar + 4] = 24
+            committed[deltar + 5] = 24
+            committed[deltar + 6] = 24
+            committed[deltar + 7] = 24
+            committed[deltar + 8] = 24 
+        elif epsilon == 0.0001:
+            committed[deltar] = 27
+            committed[deltar + 1] = 24
+            committed[deltar + 2] = 22
+            committed[deltar + 3] = 21
+            committed[deltar + 4] = 21
+            committed[deltar + 5] = 20
+            committed[deltar + 6] = 20
+            committed[deltar + 7] = 20
+            committed[deltar + 8] = 20
+        else:
+            print("epsilon error!")
+        
+        sync_threshold[deltar] = 22
+        sync_threshold[deltar + 1] = 25
+        sync_threshold[deltar + 2] = 25
+        sync_threshold[deltar + 3] = 25
+        sync_threshold[deltar + 4] = 25
+        sync_threshold[deltar + 5] = 25
+    if(tau == 28):
+        if epsilon == 0.00000001:
+            committed[deltar] = 32
+            committed[deltar + 1] = 26
+            committed[deltar + 2] = 24
+            committed[deltar + 3] = 24
+            committed[deltar + 4] = 24
+            committed[deltar + 5] = 14
+            committed[deltar + 6] = 14
+            committed[deltar + 7] = 24
+            committed[deltar + 8] = 24
+        elif epsilon == 0.000001:
+            committed[deltar] = 29
+            committed[deltar + 1] = 24
+            committed[deltar + 2] = 22
+            committed[deltar + 3] = 22
+            committed[deltar + 4] = 22
+            committed[deltar + 5] = 22
+            committed[deltar + 6] = 22
+            committed[deltar + 7] = 22
+            committed[deltar + 8] = 22 
+        elif epsilon == 0.0001:
+            committed[deltar] = 25
+            committed[deltar + 1] = 22
+            committed[deltar + 2] = 20
+            committed[deltar + 3] = 20
+            committed[deltar + 4] = 19
+            committed[deltar + 5] = 19
+            committed[deltar + 6] = 18
+            committed[deltar + 7] = 18
+            committed[deltar + 8] = 18
+        else:
+            print("epsilon error!")
+
+        sync_threshold[deltar] = 20
+        sync_threshold[deltar + 1] = 22
+        sync_threshold[deltar + 2] = 22
+        sync_threshold[deltar + 3] = 22
+        sync_threshold[deltar + 4] = 22
+        sync_threshold[deltar + 5] = 22
+    if(tau == 25):
+        if epsilon == 0.00000001:
+            committed[deltar] = 30
+            committed[deltar + 1] = 24
+            committed[deltar + 2] = 22
+            committed[deltar + 3] = 21
+            committed[deltar + 4] = 20
+            committed[deltar + 5] = 19
+            committed[deltar + 6] = 19
+            committed[deltar + 7] = 18
+            committed[deltar + 8] = 18
+
+        elif epsilon == 0.000001:
+            committed[deltar] = 27
+            committed[deltar + 1] = 22
+            committed[deltar + 2] = 20
+            committed[deltar + 3] = 19
+            committed[deltar + 4] = 19
+            committed[deltar + 5] = 18
+            committed[deltar + 6] = 18
+            committed[deltar + 7] = 18
+            committed[deltar + 8] = 18
+
+        elif epsilon == 0.0001:
+            committed[deltar] = 24
+            committed[deltar + 1] = 20
+            committed[deltar + 2] = 19
+            committed[deltar + 3] = 18
+            committed[deltar + 4] = 17
+            committed[deltar + 5] = 17
+            committed[deltar + 6] = 17
+            committed[deltar + 7] = 17
+            committed[deltar + 8] = 17
+        else:
+            print("epsilon error!")
+
+        sync_threshold[deltar] = 17
+        sync_threshold[deltar + 1] = 19
+        sync_threshold[deltar + 2] = 19
+        sync_threshold[deltar + 3] = 19
+        sync_threshold[deltar + 4] = 19
+        sync_threshold[deltar + 5] = 19
+
+    if(tau == 19):
+        if epsilon == 0.00000001:
+            committed[deltar] = 25
+            committed[deltar + 1] = 20
+            committed[deltar + 2] = 18
+            committed[deltar + 3] = 17
+            committed[deltar + 4] = 16
+            committed[deltar + 5] = 15
+            committed[deltar + 6] = 15
+            committed[deltar + 7] = 15
+            committed[deltar + 8] = 15
+
+        elif epsilon == 0.000001:
+            committed[deltar] = 22
+            committed[deltar + 1] = 18
+            committed[deltar + 2] = 17
+            committed[deltar + 3] = 16
+            committed[deltar + 4] = 15
+            committed[deltar + 5] = 15
+            committed[deltar + 6] = 14
+            committed[deltar + 7] = 14
+            committed[deltar + 8] = 14
+
+        elif epsilon == 0.0001:
+            committed[deltar] = 19
+            committed[deltar + 1] = 16
+            committed[deltar + 2] = 15
+            committed[deltar + 3] = 14
+            committed[deltar + 4] = 14
+            committed[deltar + 5] = 14
+            committed[deltar + 6] = 14
+            committed[deltar + 7] = 14
+            committed[deltar + 8] = 13
+        else:
+            print("epsilon error!")
+
+        sync_threshold[deltar] = 12
+        sync_threshold[deltar + 1] = 13
+        sync_threshold[deltar + 2] = 13
+        sync_threshold[deltar + 3] = 14
+        sync_threshold[deltar + 4] = 14
+        sync_threshold[deltar + 5] = 14
+
+    if(tau == 16):
+        if epsilon == 0.00000001:
+            committed[deltar] = 22
+            committed[deltar + 1] = 18
+            committed[deltar + 2] = 16
+            committed[deltar + 3] = 15
+            committed[deltar + 4] = 14
+            committed[deltar + 5] = 14
+            committed[deltar + 6] = 14
+            committed[deltar + 7] = 13
+            committed[deltar + 8] = 13
+
+        elif epsilon == 0.000001:
+            committed[deltar] = 20
+            committed[deltar + 1] = 16
+            committed[deltar + 2] = 15
+            committed[deltar + 3] = 14
+            committed[deltar + 4] = 13
+            committed[deltar + 5] = 13
+            committed[deltar + 6] = 12
+            committed[deltar + 7] = 12
+            committed[deltar + 8] = 12
+
+        elif epsilon == 0.0001:
+            committed[deltar] = 17
+            committed[deltar + 1] = 14
+            committed[deltar + 2] = 13
+            committed[deltar + 3] = 13
+            committed[deltar + 4] = 12
+            committed[deltar + 5] = 12
+            committed[deltar + 6] = 11
+            committed[deltar + 7] = 11
+            committed[deltar + 8] = 11
+        else:
+            print("epsilon error!")
+
+        sync_threshold[deltar] = 10
+        sync_threshold[deltar + 1] = 11
+        sync_threshold[deltar + 2] = 12
+        sync_threshold[deltar + 3] = 13
+        sync_threshold[deltar + 4] = 13
+        sync_threshold[deltar + 5] = 13
+
+    if(tau == 13):
+        if epsilon == 0.00000001:
+            committed[deltar] = 20
+            committed[deltar + 1] = 15
+            committed[deltar + 2] = 14
+            committed[deltar + 3] = 13
+            committed[deltar + 4] = 12
+            committed[deltar + 5] = 12
+            committed[deltar + 6] = 11
+            committed[deltar + 7] = 11
+            committed[deltar + 8] = 11
+
+        elif epsilon == 0.000001:
+            committed[deltar] = 17
+            committed[deltar + 1] = 14
+            committed[deltar + 2] = 13
+            committed[deltar + 3] = 12
+            committed[deltar + 4] = 11
+            committed[deltar + 5] = 11
+            committed[deltar + 6] = 11
+            committed[deltar + 7] = 10
+            committed[deltar + 8] = 10
+
+        elif epsilon == 0.0001:
+            committed[deltar] = 15
+            committed[deltar + 1] = 12
+            committed[deltar + 2] = 11
+            committed[deltar + 3] = 10
+            committed[deltar + 4] = 10
+            committed[deltar + 5] = 10
+            committed[deltar + 6] = 10
+            committed[deltar + 7] = 10
+            committed[deltar + 8] = 10
+        else:
+            print("epsilon error!")
+
+        sync_threshold[deltar] = 8
+        sync_threshold[deltar + 1] = 9
+        sync_threshold[deltar + 2] = 10
+        sync_threshold[deltar + 3] = 10
+        sync_threshold[deltar + 4] = 10
+        sync_threshold[deltar + 5] = 10
+
     if(tau == 10):
         if epsilon == 0.00000001:
             committed[deltar] = 17
@@ -49,7 +581,7 @@ def structCommitted(tau,epsilon):
         sync_threshold[deltar + 2] = 7
         sync_threshold[deltar + 3] = 7
         sync_threshold[deltar + 4] = 7
-        sync_threshold[deltar + 5] = 8 
+        sync_threshold[deltar + 5] = 7 
         
     elif(tau == 7):
         if epsilon == 0.00000001:
@@ -176,7 +708,7 @@ def TrustandPeers():
     contIPs = 0
     for i in range(0,cont+2):
         if i == 0:
-            first = 3
+            first = 2
         else:
             first = 0
         for j in range(first,256):            
@@ -218,7 +750,7 @@ def TrustandPeers():
 
 def comb(tal,w):
     combi = {}
-    for k in range(0,tal+31):
+    for k in range(0,tal+201):
         index = "("+str(w)+","+str(k)+")"
         combi[index] = chaincontrol.Combinations(w,k)
     return combi
@@ -367,7 +899,12 @@ GEN_ARRIVE_TIME = 1573486728
 THRESHOLD = 2
 
 # Time in seconds
-timeout = 20
+timeout = 90
+#phase1 = timeout * (float(1)/2)
+phase1 = 45
+phase2 = 45
+#phase2 = timeout / float((float(2)/3))
+#phase2 = timeout * (float(1)/2)
 # difficulty
 
 ### Test Variables ###
@@ -388,9 +925,9 @@ tol = 2 #round tolerance
 
 round_buffer = 1 #round interval that a block can wait on the listen buffer
 
-epsilon = 0.00000001 #reversion prob.
+epsilon = 0.000001 #reversion prob.
 
-TEST = 2000 #test time
+TEST = 1800 #test time
 
 W = 10000 #all network coins
 
@@ -400,17 +937,19 @@ hW = int(W * float(1 - q)) #honest coins
 
 qW = int(W * float(q)) #dishonest coins
 
-tal = 4 #proposer parameter
+tal = 46 #proposer parameter
 
 txround = 1000
 
 difficulty = float(math.log(W,2) - math.log(tal,2)) 
 
 nodes = 400 #num nodes
-
 k = 3 #fraction of connected peers
 trust = 2 #fraction of trust nodes
 theta = 0.5 #threshold
+
+sendblocks = 4 #in each round only sendblocks are transmitted
+
 
 trusted,peers = TrustandPeers()
 #defineNeighbors(peers)

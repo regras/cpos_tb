@@ -88,7 +88,7 @@ class Node(object):
         #bloom filter to control sending block process
         self.checkblock = BloomFilter(1200)
         self.sendbf = {}
-        
+        self.sendbfheader = {}
         
         #self.psocket = self.ctx.socket(zmq.PUB)
         #self.subsocket = self.ctx.socket(zmq.SUB)
@@ -366,9 +366,9 @@ class Node(object):
 
         nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
         print("startTime: ", startTime)        
-        print("sleeping time: %f" %(1200 - (nowTime - float(startTime))))
-        if((1200 - (nowTime - startTime)) > 0):
-            time.sleep(1200 - (nowTime - startTime))
+        print("sleeping time: %f" %(600 - (nowTime - float(startTime))))
+        if((600 - (nowTime - startTime)) > 0):
+            time.sleep(600 - (nowTime - startTime))
         self.startThreads()
 
 #########neighbor connect function ###############
@@ -625,7 +625,6 @@ class Node(object):
                     new_block = Block(block.index + 1, block.hash, round, self.node, arrive_time, blockHash, tx, subUser, proofHash)
                     sqldb.setArrivedBlock(new_block,1)
                     sqldb.setLogBlock(new_block, 1)
-                    status = chaincontrol.addBlockLeaf(block=new_block)
                     #print("status: ", status) 
                     if(status):  
                         #self.insertNewBlock(message=[self.ipaddr, str(self.stake), new_block])                      
@@ -633,14 +632,14 @@ class Node(object):
                             bloom_filter = self.bloomf.new_filter()
                             self.bloomf.add(self.ipaddr, bloom_filter)
                             message = [new_block, self.ipaddr, str(self.stake),bloom_filter,self.ipaddr]
-                            start_new_thread(self.sendControl, (message,))
+                            start_new_thread(self.sendControl, (message,'header'))
                             #self.insertNewBlock(message)                            
                             #self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, str(self.stake), pickle.dumps(new_block, 2), pickle.dumps(values,2)])                    
                         except zmq.ZMQError as e:
                             print("psocket on mine function has a problem!")
                             print(str(e))
                         #self.semaphore.release()
-                        return True,arrive_time
+                        return True,message
                     #else:
                         #print("block is not priority. Not inserted")
 
@@ -797,8 +796,7 @@ class Node(object):
             return True, sumsuc     
         return False  
 
-    def sendControl(self,message):
-        values = parameter.pblock
+    def sendControl(self,message,type):
         trust = parameter.trusted
         #while True and not self.k.is_set():
         #    self.block_signal.wait()
@@ -817,8 +815,9 @@ class Node(object):
         srcaddr = message[4]
         setsend = []
         c = 0                    
-        for k in self.peers:
-            '''if ip == self.ipaddr and self.ipaddr not in trust:
+
+        '''for k in self.peers:
+            if ip == self.ipaddr and self.ipaddr not in trust:
                 if k in trust and c == 0:
                     status = True
                     c = 1
@@ -844,21 +843,28 @@ class Node(object):
             else:
                 status = False
                 
-            if(status):'''                        
-            if(not self.bloomf.check(k['ipaddr'],bloom_filter)):    
-                setsend = setsend + [k['ipaddr']]
-                self.bloomf.add(k['ipaddr'],bloom_filter)
+            if(status):'''
+        #for k in self.peers:                        
+        #    if(not self.bloomf.check(k['ipaddr'],bloom_filter)):    
+        #        setsend = setsend + [k['ipaddr']]
+        #        self.bloomf.add(k['ipaddr'],bloom_filter)
 
-        message = [consensus.MSG_BLOCK,ip,str(user_stake),b,values,bloom_filter]
+        if(type == 'header'):
+            #print("CREATING HEADER")
+            message = [consensus.MSG_HEADER,ip,str(user_stake),b,bloom_filter]
+        else:
+            values = parameter.pblock
+            message = [consensus.MSG_BLOCK,ip,str(user_stake),b,values,bloom_filter]
+
         message = pickle.dumps(message,2)
         #print("####START SEND BLOCK####")
         #print(b.hash)                        
-        for k in setsend:
+        for k in self.peers:
             #print("DESTINATION")
             #print(k)
             try:
                 bsend = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                bsend.connect((k,self.port))                                        
+                bsend.connect((k['ipaddr'],self.port))                                        
                 bsend.send(message)
                 m = bsend.recv(4096)
                 bsend.close()
@@ -908,22 +914,26 @@ class Node(object):
             currentRound =  int(math.floor((float(time.mktime(datetime.datetime.now().timetuple()))  - float(parameter.GEN_ARRIVE_TIME))/ parameter.timeout))
             self.workersemaphore.acquire()            
             if(currentRound not in self.sendbf):
-                self.sendbf[currentRound] = self.checkblock.new_filter()               
-            status = self.checkblock.check(b.hash,self.sendbf[currentRound])
+                self.sendbf[currentRound] = self.checkblock.new_filter()
+            bloom_hash = b.hash + msg
+            #bloom_hash = hashlib.sha256(str(bloom_hash)).hexdigest()         
+            #status = self.checkblock.check(b.hash,self.sendbf[currentRound])
+            status = self.checkblock.check(bloom_hash,self.sendbf[currentRound])
             print("Is block in the bloom filter: %s" %(status))
             if(not status):
-                self.checkblock.add(b.hash,self.sendbf[currentRound])
+                #self.checkblock.add(b.hash,self.sendbf[currentRound])
+                self.checkblock.add(bloom_hash,self.sendbf[currentRound])
                 message = [b,ip,user_stake,bloom_filter,srcaddr]
                 #self.insertNewBlock([b,ip,user_stake,bloom_filter,srcaddr])                
-                if(validations.validateExpectedLocalRound(b)):
-                    start_new_thread(self.sendControl, (message,))
+                if(validations.validateExpectedLocalRound(consensus.MSG_BLOCK,b)):
+                    start_new_thread(self.sendControl, (message,'block'))
                     self.workersemaphore.release()
 
                     while(b.round > self.round):
                         time.sleep(0.1)
                     self.semaphore.acquire()
                     b.arrive_time = float(time.mktime(datetime.datetime.now().timetuple()))
-                    if(validations.validateExpectedLocalRound(b)):                                                                                   
+                    if(validations.validateExpectedLocalRound(consensus.MSG_BLOCK,b)):                                                                                   
                         sqldb.setLogBlock(b,1)
                         sqldb.setArrivedBlock(b,1)  
                         sqldb.setTransmitedBlock(b,1)                                          
@@ -932,7 +942,7 @@ class Node(object):
                             print("NEW BLOCK ARRIVED")
                             print(b.index)
                             print(b.hash)
-                            print(b.prev_hash)                     
+                            print(b.prev_hash)                                            
                             logging.debug('valid block header')
                             prevBlock = self.commitBlock([b.prev_hash],t=14)
                             if(prevBlock and sqldb.isLeaf(b.index)):   
@@ -970,7 +980,65 @@ class Node(object):
                 sqldb.setTransmitedBlock(b,1)
                 self.semaphore.release()                
             
-        else:
+        elif(msg == consensus.MSG_HEADER):
+            ip = message[1]
+            user_stake = int(message[2])
+            b = message[3]
+            b.arrive_time = float(time.mktime(datetime.datetime.now().timetuple()))
+            bloom_filter = message[4]
+            currentRound =  int(math.floor((float(time.mktime(datetime.datetime.now().timetuple()))  - float(parameter.GEN_ARRIVE_TIME))/ parameter.timeout))
+            self.workersemaphore.acquire()            
+            if(currentRound not in self.sendbf):
+                self.sendbf[currentRound] = self.checkblock.new_filter()  
+            bloom_hash = b.hash + msg
+            #bloom_hash = hashlib.sha256(str(bloom_hash)).hexdigest()             
+            #status = self.checkblock.check(b.hash,self.sendbfheader[currentRound])
+            status = self.checkblock.check(bloom_hash,self.sendbf[currentRound])
+            print("Is block in the bloom filter: %s" %(status))
+            if(not status):
+                #self.checkblock.add(b.hash,self.sendbfheader[currentRound])
+                self.checkblock.add(bloom_hash, self.sendbf[currentRound])
+                message = [b, ip,user_stake,bloom_filter,srcaddr]
+                #self.insertNewBlock([b,ip,user_stake,bloom_filter,srcaddr])                
+                if(validations.validateExpectedLocalRound(consensus.MSG_HEADER,b)):
+                    start_new_thread(self.sendControl, (message,'header'))
+                    self.workersemaphore.release()
+
+                    while(b.round > self.round):
+                        time.sleep(0.1)
+                    self.semaphore.acquire()
+                    b.arrive_time = float(time.mktime(datetime.datetime.now().timetuple()))
+                    print("BLOCK HEADER")
+                    if(validations.validateExpectedLocalRound(consensus.MSG_HEADER,b)):  
+                        print("########STARTING INSERT NEW BLOCK HEADER#########")                            
+                        print("NEW BLOCK HEADER ARRIVED")
+                        print(b.index)
+                        print(b.hash)
+                        print(b.prev_hash) 
+                        print("HEADER TIME: ", b.arrive_time)                                                                                                 
+                        sqldb.setLogBlock(b,1)
+                        sqldb.setArrivedBlock(b,1)  
+                        sqldb.setTransmitedBlock(b,2)                                        
+                        
+                    else:
+                        print("BLOCK HEADER IS TOO LATE!")
+                        sqldb.setArrivedBlock(b,2)
+                        sqldb.setTransmitedBlock(b,2)                                                                                                                                                          
+                    self.semaphore.release()
+                else:
+                    self.workersemaphore.release()
+                    self.semaphore.acquire()
+                    print("BLOCK HEADER IS TOO LATE!")                        
+                    sqldb.setArrivedBlock(b,2)
+                    sqldb.setTransmitedBlock(b,2)
+                    self.semaphore.release()                                                                                                                                   
+                                         
+            else:
+                self.workersemaphore.release()
+                self.semaphore.acquire()
+                sqldb.setTransmitedBlock(b,2)
+                self.semaphore.release()    
+        else:    
             print("LISTEN: MESSAGE NOT FOUND")       
    
         
@@ -1061,18 +1129,37 @@ class Node(object):
                     print("########STARTING MINE NEW BLOCK#########")
                     print("ROUND: ", currentRound)
                     self.round = currentRound
-                    self.generateNewblock(currentRound)
+                    status,message = self.generateNewblock(currentRound)
                 self.stableBlock() #check stable block
                 #start_new_thread(self.stableBlock)    
                 if((nowTime - self.starttime) >= parameter.TEST):
                     self.startMine = False                                             
                 self.semaphore.release()
+                if(status and message):                            
+                    if(float(time.mktime(datetime.datetime.now().timetuple())) - prevTime < parameter.phase1):
+                        print("SLEEP TIME PHASE 1: ", parameter.phase1 - (float(time.mktime(datetime.datetime.now().timetuple())) - prevTime))
+                        time.sleep(parameter.phase1 - (float(time.mktime(datetime.datetime.now().timetuple())) - prevTime))
+                    self.semaphore.acquire()
+                    position = sqldb.blockClassification(self.node,currentRound)
+                    print(position)                                      
+                    if(position <= parameter.sendblocks):
+                        new_block = message[0]
+                        status = chaincontrol.addBlockLeaf(block=new_block)
+                        bloom_filter = self.bloomf.new_filter()
+                        self.bloomf.add(self.ipaddr, bloom_filter)
+                        message[3] = bloom_filter
+                        start_new_thread(self.sendControl, (message,'block'))
+                    self.semaphore.release()
+                    #elif(position == 2):
+                    #    second position send block ??
+                    if(float(time.mktime(datetime.datetime.now().timetuple())) - prevTime < parameter.timeout):
+                        time.sleep(parameter.timeout - (float(time.mktime(datetime.datetime.now().timetuple())) - prevTime))
+                    
+                else:                            
+                    if(float(time.mktime(datetime.datetime.now().timetuple())) - prevTime < parameter.timeout):
+                        print("NODE NOT RAFFED. SLEEP ALL ROUND TIME: ", parameter.timeout - (float(time.mktime(datetime.datetime.now().timetuple())) - prevTime))
+                        time.sleep(parameter.timeout - (float(time.mktime(datetime.datetime.now().timetuple())) - prevTime))               
 
-                nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
-                if(nowTime - prevTime < parameter.timeout):
-                    print("ROUND SLEEP TIME: ",parameter.timeout - (nowTime - prevTime))
-                    if((parameter.timeout - (nowTime - prevTime)) > 0):
-                        time.sleep(parameter.timeout - (nowTime - prevTime))           
                 nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
             else:
                 time.sleep(1)    
@@ -1147,14 +1234,17 @@ class Node(object):
         while(block.round >= round):
             block = self.commitBlock([block.prev_hash], t=14)
             #self.semaphore.release()
+        status = False
+        message = None
         if(block):
             print("trying block:")
             print(block.index + 1)
             print("trying round:")
             print(round)
-            replyMine, triedTime = self.commitBlock(message=[block,round],t=0)
+            status,message = self.commitBlock(message=[block,round],t=0)
             print("########END MINE NEW BLOCK#########")
             print("\n\n\n")
+        return status,message
         self.e.clear()         
    
     def probe(self):
@@ -2036,9 +2126,7 @@ def main():
     if args.stake:
         stakeList = args.stake if isinstance(args.stake, list) else [args.stake]
         n.setStake(stakeList[0])
-   
 
-    
     
     msg_thread = threading.Thread(name='REQ/REP', target=n.messageHandler)
     msg_thread.start()
@@ -2054,6 +2142,14 @@ def main():
         n.miner_thread.start()
         n.start.set()
         n.f.set()
+    
+    print("starting peer...")
+    h = hashlib.sha256(str(args.ipaddr)).hexdigest()            
+    s = parameter.numStake[1][h][0]
+    n.setStake(s)
+    startTime = 
+    msg_start_peers = threading.Thread(name='startnode', target=n.startnode, kwargs={'ipaddr':args.ipaddr,'startTime':startTime})
+    msg_start_peers.start()
 
     try:
         while True:

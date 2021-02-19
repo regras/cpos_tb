@@ -69,7 +69,7 @@ while(limit >=0):
             else:
                 print("combinations not present in list")
                 comb = Combinations(parameter.qW,k[i])
-            prob_i = Decimal(comb * (p**k[i]) * ((1-p)**(parameter.qW - k[i])))
+            prob_i = Decimal(comb) * (Decimal(p**k[i])) * (Decimal((1-p))**(Decimal(parameter.qW) - Decimal(k[i])))
             prob = prob * prob_i
         tprob = tprob + prob
     limit = limit - 1    

@@ -174,7 +174,31 @@ def dbConnect():
 
     db.commit()
     db.close()
-       
+def blockClassification(node,round):
+    try:
+        db = sqlite3.connect(databaseLocation,timeout=40)
+        cursor = db.cursor()
+        cursor.execute("SELECT node, proof_hash from log_block WHERE round = %d order by proof_hash asc" %round)
+        queries = cursor.fetchall()
+        db.close()
+        position = None
+        if queries:
+            position = 1
+            for query in queries:
+                print("query[0]", query[0])
+                print("node", node)
+                if(int(query[0],16) == int(node,16)):
+                    print("equal")
+                    return position
+                else:
+                    position = position + 1
+        return position
+    except Exception as e:
+        print(str(e))
+        return position
+        
+
+
 def isLeaf(index):
     try:
         db = sqlite3.connect(databaseLocation,timeout=40)
@@ -1775,15 +1799,21 @@ def addBlocksReversion(fblock,lblock,idreversion,db=None):
 
 def get_trans(num):
     try:
+        transmission = []
         db = sqlite3.connect(databaseLocation)
         cursor = db.cursor()
-        cursor.execute('SELECT COUNT(*) FROM transmit_block WHERE id <= %d' % int(num))  
+        cursor.execute('SELECT COUNT(*) FROM transmit_block WHERE status = 1 and id <= %d' % int(num))  
         queries = cursor.fetchone()
         if(queries):
-            return [queries[0]]
+            transmission = transmission + [queries[0]]
+        cursor.execute('SELECT COUNT(*) FROM transmit_block WHERE status = 2 and id <= %d' % int(num))
+        queries = cursor.fetchone()
+        if(queries):
+            transmission = transmission + [queries[0]]
+        return transmission
     except Exception as e:
         print(str(e))
-    return [None]
+    return [None,None]
 
 def explorer(num,node='-1'):
     receivedblocks = 0

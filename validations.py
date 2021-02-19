@@ -118,25 +118,27 @@ def validateExpectedRound(block, lastBlock):
     else:
         return False
         
-def validateExpectedLocalRound(block):
+def validateExpectedLocalRound(type, block):
     nowTime = time.mktime(datetime.datetime.now().timetuple())
     expected_round = int(math.floor((float(block.arrive_time) - float(parameter.GEN_ARRIVE_TIME))/parameter.timeout))
-    #if(calculated_rounds == 0 and ((int(block.arrive_time) - int(leaf_arrive_time)) < parameter.timeout)):
-    #    calculated_rounds = 1
-
-    #elif((int(block.arrive_time) - int(leaf_arrive_time)) > (calculated_rounds * parameter.timeout)):
-    #    calculated_rounds = calculated_rounds + 1    
-
-    #expected_round = leaf_round + calculated_rounds
-    print("BLOCK ROUND", block.round)
-    print("EXPECTED_ROUND", expected_round)
-    #print("Expected Round")
-    #print(leaf_round)
-    #print("Block Round")
-    #print(block.round)
-    #if block.round >= expected_round - parameter.roundTolerancy and block.round <= expected_round + parameter.roundTolerancy:
-    if block.round >= expected_round and block.round <= expected_round + parameter.tol:
-        #print("EXPECTED_ROUND", expected_round)
-        return True
-    else:
-        return False
+    if(type == 'block'):        
+        print("BLOCK ROUND", block.round)
+        print("EXPECTED_ROUND", expected_round)
+        if block.round >= expected_round and block.round <= expected_round + parameter.tol:
+            return True
+        else:
+            return False
+    elif(type == 'header'):
+        if expected_round == block.round:
+            #print("EXPECTED_ROUND: ", expected_round)
+            roundPhaseTime = float(parameter.GEN_ARRIVE_TIME) + float(parameter.timeout * expected_round + parameter.phase1)
+            #print("ROUNDPASHETIME: ", roundPhaseTime)
+            #print("BLOCK_arrive_time: ", block.arrive_time)
+            if(block.arrive_time <= roundPhaseTime):
+                return True
+            else: 
+                return False
+        elif block.round > expected_round and block.round <= expected_round + parameter.tol:
+            return True
+        else:
+            return False

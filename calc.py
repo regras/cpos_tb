@@ -1,6 +1,6 @@
 #import parameter
 import parameter
-
+from decimal import Decimal
 ############combinations##########
 def Combinations(m,n):
       # calcula o fatorial de m
@@ -35,12 +35,12 @@ def Combinations(m,n):
 ##################################################
 
 #########input parameters#########
-smean = 13
+smean = 42
 round = 1
 #fileName = 'results.txt'
 #################################
 #while(smean >= 1):
-round = 3
+round = 1
 tprob = 2
 #    while(tprob >= (10**-6) and round <= 10):
         ####define initial parameters####
@@ -50,7 +50,8 @@ limit = (2 * round * smean) - 1
 #limit  = 30
 #limit = (round * smean) - 1
 #limit = round*(smean + 10) - 1 
-tprob = 0
+#tprob = 0
+tprob = Decimal(0)
 ################################
 while(limit >=0):
     q = MixedIntegerLinearProgram()
@@ -65,7 +66,8 @@ while(limit >=0):
 
     #calc probability
     for k in a:
-        prob = 1
+        #prob = 1
+        prob = Decimal(1)
         for i in range(0,round):
             index = "("+str(parameter.W)+","+str(k[i])+")"
             if(index in parameter.combination):
@@ -73,12 +75,15 @@ while(limit >=0):
             else:
                 print("combinations not present in list")
                 comb = Combinations(parameter.W,k[i])
-            prob_i = comb * (p**k[i]) * ((1-p)**(parameter.W - k[i]))
+            #prob_i = comb * (p**k[i]) * ((1-p)**(parameter.W - k[i]))
+            #prob_i = Decimal(comb * (p**k[i]) * ((1-p)**(parameter.W - k[i])))
+            prob_i = Decimal(comb) * Decimal(p**k[i]) * Decimal((1-p)**(parameter.W - k[i]))
             prob = prob * prob_i
         tprob = tprob + prob
     limit = limit - 1
 print(tprob)
-tprob = 1 - tprob
+#tprob = 1 - tprob
+tprob = Decimal(1) - Decimal(tprob)
 print(tprob)
 #results = open(fileName, 'a')
 #results.write('probability: '+str(tprob)+'\n'

@@ -76,8 +76,10 @@ exit                Terminate and exit the node.py program running
 
             elif(MSG_TRANS == sys.argv[1]):
                 peers = parameter.peers
-                numtrans = 0
-                listnumtrans = []
+                numtransBlock = 0
+                listnumtransBlock = []
+                numtransHeader = 0
+                listnumtransHeader = []
                 i = 0
                 while (i < len(peers)):
                     try:                         
@@ -89,18 +91,27 @@ exit                Terminate and exit the node.py program running
                         reqsocket.send_multipart([MSG_TRANS,sys.argv[2]])
                         reply = reqsocket.recv_pyobj()
                         if(reply[0]):
-                            numtrans = numtrans + reply[0]
-                            listnumtrans = listnumtrans + [int(reply[0])]
+                            numtransBlock = numtransBlock + reply[0]
+                            listnumtransBlock = listnumtransBlock + [int(reply[0])]
+                            if(reply[1]):
+                                numtransHeader = numtransHeader + reply[1]
+                                listnumtransHeader = listnumtransHeader + [int(reply[1])]
                     except Exception as e:
                             print(str(e))
                     i = i + 1
-                avgtrans = float(numtrans) / len(listnumtrans)
-                variance = statistics.pvariance(listnumtrans,avgtrans)
-                for k in listnumtrans:
-                    print(k)
-                print("total transmission: %d" %numtrans)
-                print("avg transmission: ", avgtrans)
-                print("variance: ", variance)
+                avgtransBlock = float(numtransBlock) / len(listnumtransBlock)
+                varianceBlock = statistics.pvariance(listnumtransBlock,avgtransBlock)
+                avgtransHeader = float(numtransHeader) / len(listnumtransHeader)
+                varianceHeader = statistics.pvariance(listnumtransHeader,avgtransHeader)
+                #for k in listnumtrans:
+                #    print(k)
+                print("total block transmission: %d" %numtransBlock)
+                print("avg block transmission: ", avgtransBlock)
+                print("avg block variance: ", varianceBlock)
+
+                print("total header transmission: %d" %numtransHeader)
+                print("avg header transmission: ", avgtransHeader)
+                print("avg header variance: ", varianceHeader)
 
                 
             elif(MSG_EXPLORER == sys.argv[1]):
