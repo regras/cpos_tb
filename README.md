@@ -1,2 +1,2 @@
-# ppos_tb
-Probabilistic Proof-of-Stake consensus protocol testbed
+# cpos_tb
+Committeeless Proof-of-Stake consensus protocol testbed
