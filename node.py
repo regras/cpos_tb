@@ -875,6 +875,27 @@ class Node(object):
             self.block_signal.set()
             self.blocksemaphore.release()'''
 
+    def sendtx(self,msgtx):
+        tx = msgtx[0]
+        ip = msgtx[1]
+        bloom_filter = msgtx[2]
+        setsend=[]
+        for k in self.peers:
+            if(not self.bloomf.check(k['ipaddr'],bloom_filter)):    
+                setsend = setsend + [k['ipaddr']]
+                self.bloomf.add(k['ipaddr'],bloom_filter)
+        message = [consensus.MSG_TX, ip, tx, bloom_filter]
+        message = pickle.dumps(message,2)
+        for k in psetsend:
+            try:
+                tsend = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                tsend.connect((k,self.port))                                      
+                tsend.send(message)
+                m = tsend.recv(4096)
+                tsend.close()
+            except Exception as e:
+                print(str(e))
+
     def worker(self,c,srcaddr):
         buffer = ""
         reply = "OK"
@@ -958,7 +979,13 @@ class Node(object):
                 self.workersemaphore.release()
                 self.semaphore.acquire()
                 sqldb.setTransmitedBlock(b,1)
-                self.semaphore.release()                  
+                self.semaphore.release()    
+        elif(msg == consensus.MSG_TX):
+            ip = message[1]
+            tx = message[2]
+            bloom_filter = message[3]
+            message = [tx,ip,bloom_filter]
+            start_new_thread(self.sendtx, (message,))
         else:
             print("LISTEN: MESSAGE NOT FOUND")       
    
