@@ -367,8 +367,8 @@ class Node(object):
 
         nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
         print("startTime: ", startTime)        
-        if((300 - (nowTime - startTime)) > 0):
-            time.sleep(300 - (nowTime - startTime))
+        if((780 - (nowTime - startTime)) > 0):
+            time.sleep(780 - (nowTime - startTime))
         self.startThreads()
 
 #########neighbor connect function ###############
@@ -2048,7 +2048,7 @@ def main():
     h = hashlib.sha256(str(args.ipaddr)).hexdigest()            
     s = parameter.numStake[1][h][0]
     n.setStake(s)
-    startTime = 1610285279.0
+    startTime = 1611619373.0
     msg_start_peers = threading.Thread(name='startnode', target=n.startnode, kwargs={'ipaddr':args.ipaddr,'startTime':startTime})
     msg_start_peers.start()
                 

@@ -348,11 +348,11 @@ def TrustandPeers():
     contIPs = 0
     for i in range(0,cont+2):
         if i == 0:
-            first = 1
+            first = 2
         else:
             first = 0
         for j in range(first,256):            
-            trusted=trusted+['10.0'+str(i)+'.'+str(j)]
+            trusted=trusted+['10.1'+str(i)+'.'+str(j)]
             contIPs=contIPs+1
             if(contIPs == trust):
                 break
@@ -374,12 +374,12 @@ def TrustandPeers():
     #print cont
     for i in range(0,cont+2):
         if i == 0:
-            first = 1
+            first = 2
         else:
             first = 0
         for j in range(first,256):
             #if (i != 2) or (j >= 120 or j <= 89):
-            peers=peers+['10.0.'+str(i)+'.'+str(j)]
+            peers=peers+['10.1.'+str(i)+'.'+str(j)]
             contIPs=contIPs+1
             if(contIPs == nodes):
                 break
@@ -539,7 +539,7 @@ GEN_ARRIVE_TIME = 1573486728
 THRESHOLD = 2
 
 # Time in seconds
-timeout = 20
+timeout = 45
 # difficulty
 
 ### Test Variables ###
@@ -562,7 +562,7 @@ round_buffer = 1 #round interval that a block can wait on the listen buffer
 
 epsilon = 0.000001 #reversion prob.
 
-TEST = 1800 #test time
+TEST = 600 #test time
 
 W = 10000 #all network coins
 
@@ -572,15 +572,15 @@ hW = int(W * float(1 - q)) #honest coins
 
 qW = int(W * float(q)) #dishonest coins
 
-tal = 10 #proposer parameter
+tal = 25 #proposer parameter
 
 txround = 1000
 
 difficulty = float(math.log(W,2) - math.log(tal,2)) 
 
-nodes = 4 #num nodes
+nodes = 400 #num nodes
 
-k = 2 #fraction of connected peers
+k = 6 #fraction of connected peers
 trust = 2 #fraction of trust nodes
 theta = 0.5 #threshold
 trusted,peers = TrustandPeers()
