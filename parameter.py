@@ -348,11 +348,11 @@ def TrustandPeers():
     contIPs = 0
     for i in range(0,cont+2):
         if i == 0:
-            first = 1
+            first = 2
         else:
             first = 0
         for j in range(first,256):            
-            trusted=trusted+['10.0'+str(i)+'.'+str(j)]
+            trusted=trusted+['10.1.'+str(i)+'.'+str(j)]
             contIPs=contIPs+1
             if(contIPs == trust):
                 break
@@ -574,11 +574,13 @@ qW = int(W * float(q)) #dishonest coins
 
 tal = 10 #proposer parameter
 
+blocksize = 1000000
+
 txround = 1000
 
 difficulty = float(math.log(W,2) - math.log(tal,2)) 
 
-nodes = 4 #num nodes
+nodes = 10 #num nodes
 
 k = 2 #fraction of connected peers
 trust = 2 #fraction of trust nodes
@@ -601,6 +603,7 @@ values = firstCoinsValue()
 
 #block payload
 pblock = bPayload()
+
 
 #calc committed expected per round and sync_threshold
 committed,sync_threshold = structCommitted(tal,epsilon)

@@ -5,11 +5,12 @@ import socket
 import logging
 from block import Block
 import block
-from block import Block
+import sqldb
 #import blockchain
 import leaf
 import parameter
 import consensus
+from felipe import Transaction
 import datetime
 import time
 import hashlib
@@ -27,77 +28,88 @@ logger = logging.getLogger(__name__)
 
 
 class wallet(object):
-    def __init__(self, ipaddr='127.0.0.1', port=9000):
+    def __init__(self, ipaddr='127.0.0.1', porttx=9010, n=2, rate=0.01):
         self.ipaddr = ipaddr
-        self.port = int(port)
-        self.avrfee = 100.0
+        self.n = int(n)
+        self.porttx = int(porttx)
+        self.rate = rate
+        self.avrfee = 15.0
         self.avrsize = 600
         self.sizedesvpad = 100
         self.brec = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.bloomf = BloomFilter(1000)
-        self.peers = deque()
+        self.peers = parameter.peers
 
-    def disconnect(self,d_ip='127.0.0.1',d_port=9000):
-        self.reqsocket.disconnect("tcp://%s:%s" % (d_ip, d_port+1))
-
-    def addPeer(self, ipaddr):
-        """ Add ipaddr to peers list and connect to its sockets  """
-        peer = ipaddr if isinstance(ipaddr,Mapping) else {'ipaddr': ipaddr}
-        if peer not in self.peers:
-            self.peers.appendleft(peer)
-            return "Peer %s connected" % peer['ipaddr']
-        else:
-            logging.warning("Peer %s already connected" % peer['ipaddr'])
-            return "Peer %s already connected" % peer['ipaddr']
-
-    def removePeer(self, ipaddr):
-        """ Remove peer with ipaddr and disconnect to its sockets  """
-        peer = ipaddr if isinstance(ipaddr,Mapping) else {'ipaddr': ipaddr}
-        try:
-            self.peers.remove(peer)
-            self.disconnect(d_ip=peer['ipaddr'],d_port=self.port)
-            time.sleep(1)
-        except ValueError:
-            logging.warning("Peer %s not connected" % peer['ipaddr'])
-            return "Peer %s not connected" % peer['ipaddr']
-        return "Peer %s removed" % peer['ipaddr']
-
+    def getpeers(self):
+        selectedpeers = []
+        first = 1
+        for i in range(self.n):
+            if first == 1:
+                first = 0
+                s = random.randint(0,(len(self.peers)-1))
+                selectedpeers.append(self.peers[s])
+                a = [s]
+            if first == 0:
+                while s in a:
+                    s = random.randint(0,(len(self.peers)-1))
+                selectedpeers.append(self.peers[s])
+                a.append(s)
+        return selectedpeers
 
     def sendtx(self,msgtx):
+        nodes = self.getpeers()
         tx = msgtx[0]
         ip = msgtx[1]
         bloom_filter = msgtx[2]
+        # print('#####sending transaction:',tx.id_hash)
+        # print('#####Nodes:',nodes[0],'AND',nodes[1])
         setsend=[]
-        for k in self.peers:
-            if(not self.bloomf.check(k['ipaddr'],bloom_filter)):    
-                setsend = setsend + [k['ipaddr']]
-                self.bloomf.add(k['ipaddr'],bloom_filter)
+        for k in nodes:
+            if(not self.bloomf.check(k,bloom_filter)):    
+                setsend = setsend + [k]
+                self.bloomf.add(k,bloom_filter)
         message = [consensus.MSG_TX, ip, tx, bloom_filter]
         message = pickle.dumps(message,2)
-        for k in psetsend:
+        for k in setsend:
             try:
                 tsend = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                tsend.connect((k,self.port))                                      
+                tsend.connect((k,self.porttx))                                      
                 tsend.send(message)
                 m = tsend.recv(4096)
                 tsend.close()
             except Exception as e:
                 print(str(e))
 
-    def createtx(self, id, lbd, avrsize, sizedesvpad):
-        txtime = float(time.mktime(datetime.datetime.now().timetuple()))
-        p = str(txtime)+str(id)
+    def createtx(self, lasttime):
+        ratelbd = 1/self.rate
+        t = random.expovariate(ratelbd)
+        if ((time.time()-lasttime) < t):
+            try:
+                time.sleep(float(t-(time.time()-lasttime)))
+            except Exception as e:
+                print(str(e))
+        txtime = time.time()
+        # print('truetime: %s expectedtime: %s',(txtime-lasttime,t))
+        p = str('{0:5f}'.format(txtime))+str(self.ipaddr)
         idhash = hashlib.sha256(p).hexdigest()
-        payloadsize = int(random.normalvariate(avrsize,sizedesvpad))
-        lbd = 1/avrfee
+        # print(idhash)
+        payloadsize = int(random.normalvariate(self.avrsize,self.sizedesvpad))
+        lbd = 1/self.avrfee
         tax = int(random.expovariate(lbd))
-        f = open('file.txt','a')
-        f.truncate(payloadsize)
-        f.close()
-        f = open('file.txt','r')
-        payload = f.read()
-        tx = Transaction(idhash, payload, payloadsize, tax)
+        payload = b'0'*payloadsize
+        new_tx = Transaction(idhash, payload, payloadsize, tax)
         bloom_filter = self.bloomf.new_filter()
         self.bloomf.add(self.ipaddr, bloom_filter)
         mtx = [new_tx, self.ipaddr, bloom_filter]
         start_new_thread(self.sendtx, (mtx,))
+        # sqldb.insertnewtx(new_tx)
+        return txtime
+
+def main():
+    w = wallet()
+    # starttime = time.time()
+    lasttime = time.time()
+    while True:
+        lasttime = w.createtx(lasttime)
+
+main()

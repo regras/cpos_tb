@@ -7,6 +7,7 @@ from mininet.log import setLogLevel, info
 from functools import partial
 from time import sleep
 from random import shuffle
+import numpy
 import sys, os
 import time
 import random
@@ -20,7 +21,7 @@ import hashlib
 # file directory path to mount private dirs
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-def testHostWithPrivateDirs(number=4):
+def testHostWithPrivateDirs(number=5):
     "Test bind mounts"
     topo = SingleSwitchTopo( number )
     privateDirs = privateDirs=[ (dir_path+'/blocks',

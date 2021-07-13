@@ -27,7 +27,7 @@ def defineNeighbors():
                         if p[index] not in neighbors[ip]:
                             if p[index] not in neighbors:
                                 neighbors[p[index]] = []
-                            if len(neighbors[p[index]]) <= k :
+                            if len(neighbors[p[index]]) < k :
                                 neighbors[ip].append(p[index])                        
                                 neighbors[p[index]].append(ip)
                                 del p[index]                                

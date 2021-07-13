@@ -4,6 +4,7 @@ import logging
 from block import Block
 import block
 from block import Block
+from felipe import Transaction
 import blockchain
 import leaf
 import parameter
@@ -173,9 +174,106 @@ def dbConnect():
       rconfirmation INTEGER,
       PRIMARY KEY (idreversion,idrevblock))""")
 
+    cursor.execute("""CREATE TABLE IF NOT EXISTS transactions_cache (
+        hash_transaction	TEXT NOT NULL,
+    	taxa	REAL DEFAULT 0,
+        taxabyte REAL DEFAULT 0,
+    	payload_lenght	INTEGER NOT NULL,
+    	payload	TEXT NOT NULL,
+        source_address	TEXT NOT NULL,
+	    destination_address	TEXT NOT NULL,
+	    status	INTEGER NOT NULL,
+    	PRIMARY KEY(hash_transaction)
+        )""")  
+
+    cursor.execute("""CREATE TABLE IF NOT EXISTS transactions_block (
+        hash_block	TEXT NOT NULL,
+        hash_transaction	TEXT NOT NULL,
+        taxa	REAL DEFAULT 0,
+    	payload_lenght	INTEGER NOT NULL,
+    	payload	TEXT NOT NULL,
+        source_address	TEXT NOT NULL,
+	    destination_address	TEXT NOT NULL,
+    	PRIMARY KEY(hash_transaction,hash_block)
+        )""")  
+
     db.commit()
     db.close()
        
+def insertnewtx(transaction):
+    try:
+        taxabyte = float(transaction.tax)/transaction.payloadsize
+        db = sqlite3.connect(databaseLocation)
+        cursor = db.cursor()
+        cursor.execute('INSERT INTO transactions_cache (hash_transaction,taxa,taxabyte,payload_lenght,payload,source_address,destination_address,status) VALUES (?,?,?,?,?,?,?,?)',
+        (transaction.id_hash, transaction.tax, taxabyte, transaction.payloadsize, transaction.payload, transaction.source, transaction.destination, 0))
+        db.commit()
+        db.close()
+    except Exception as e:
+        print(str(e))
+
+def selecttx(maxsize):
+    try:
+        bsize=0
+        blocktx=[]
+        db = sqlite3.connect(databaseLocation)
+        cursor = db.cursor()
+        cursor.execute("SELECT * FROM transactions_cache WHERE status=0 ORDER BY taxabyte DESC")
+        queries =  cursor.fetchall()
+        for query in queries:
+            tx = Transaction(query[0],query[4],query[3],query[1])
+            if (bsize + tx.payloadsize) <= maxsize:
+                blocktx.append(tx)
+                bsize = bsize + tx.payloadsize
+        return blocktx
+    except Exception as e:
+        print(str(e))
+
+def updatetxstatus(idhash,status):
+    try:
+        if (status <= 2 | status >= 0):
+            db = sqlite3.connect(databaseLocation)
+            cursor = db.cursor()
+            cursor.execute("""UPDATE transactions_cache
+                SET status=? 
+                WHERE hash_transaction = ?
+                """, (status,idhash))
+            db.commit()
+            db.close()
+    except Exception as e:
+        print(str(e))
+
+def removefbtx():
+    try:
+        db = sqlite3.connect(databaseLocation)
+        cursor = db.cursor()
+        cursor.execute("DELETE from transactions_cache WHERE status = 2")
+        db.commit()
+        db.close()
+    except Exception as e:
+        print(str(e))
+
+def txinblock(transaction,block):
+    try:
+        db = sqlite3.connect(databaseLocation)
+        cursor = db.cursor()
+        cursor.execute('INSERT INTO transactions_block (hash_block,hash_transaction,taxa,payload_lenght,payload,source_address,destination_address) VALUES (?,?,?,?,?,?,?)',
+        (block.hash,transaction.id_hash, transaction.tax, transaction.payloadsize, transaction.payload, transaction.source, transaction.destination))
+        db.commit()
+        db.close()
+    except Exception as e:
+        print(str(e))
+
+def verifytxnotinblock(transaction):
+    db = sqlite3.connect(databaseLocation)
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM transactions_block WHERE hash_transaction = '%s'" %(transaction.id_hash))
+    tx = cursor.fetchone()
+    if (tx):
+        return False
+    else:
+        return True
+
 def isLeaf(index):
     try:
         db = sqlite3.connect(databaseLocation,timeout=40)
@@ -1798,6 +1896,7 @@ def get_trans(num):
     #print(str(e))
     return [None,None]
 
+
 def explorer(num,node='-1'):
     receivedblocks = 0
     numround = 0
@@ -1822,7 +1921,8 @@ def explorer(num,node='-1'):
         numblockstable = len(queries)
         print(queries)
         for query in queries:
-            avgconf = avgconf + float(1) / float(query[14] - query[2])
+            #avgconf = avgconf + float(1) / float(query[14] - query[2])
+            avgconf = avgconf + (float(query[14] - query[2]))
             #blocks produced on main chain
             cursor.execute("SELECT COUNT(*) FROM log_block WHERE node = '%s' and prev_hash = '%s' and round = %d and id = %d" %(node,query[3],int(query[2]),int(query[1])))
             mblocks = cursor.fetchone()
@@ -1886,8 +1986,3 @@ def explorer(num,node='-1'):
     #    print(str(e))
 
     return [avgconf,callsync,callsyncrev,numrevblock,receivedblocks,numround,numblockstable,lateblocks,numblocks,numsuc,mainchainProducedBlock,allblockswithconfirmed]
-
-
-
-
-

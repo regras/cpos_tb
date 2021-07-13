@@ -45,9 +45,10 @@ class Node(object):
 
     ctx = None
 
-    def __init__(self, ipaddr='127.0.0.1', port=9000):
+    def __init__(self, ipaddr='127.0.0.1', port=9000, porttx=9010):
         self.ipaddr = ipaddr
         self.port = int(port)
+        self.porttx = int(porttx)
         self.localSalt = hashlib.sha256(str(random.random())).hexdigest()
         self.balance = 1
         self.resync = 0
@@ -79,7 +80,7 @@ class Node(object):
         #self.brec = self.ctx.socket(zmq.REP)
         #self.bsend = self.ctx.socket(zmq.REQ)
         self.brec = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        
+        self.brectx = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 
         #new bloom filter object
@@ -89,6 +90,11 @@ class Node(object):
         self.checkblock = BloomFilter(1200)
         self.sendbf = {}
         
+        #bloom filter to control sending transaction process
+        self.checktx = BloomFilter(80000)
+        self.sendtrans = {}
+
+        self.bestblock = None
         
         #self.psocket = self.ctx.socket(zmq.PUB)
         #self.subsocket = self.ctx.socket(zmq.SUB)
@@ -114,6 +120,7 @@ class Node(object):
         self.semaphore = threading.Semaphore()
         self.blocksemaphore = threading.Semaphore()
         self.workersemaphore = threading.Semaphore()
+        self.bestblocksemaphore = threading.Semaphore()
         #flag sync
         self.threadSync = threading.Event()
         self.threadSync.clear()
@@ -367,8 +374,8 @@ class Node(object):
 
         nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
         print("startTime: ", startTime)        
-        if((300 - (nowTime - startTime)) > 0):
-            time.sleep(300 - (nowTime - startTime))
+        if((1500 - (nowTime - startTime)) > 0):
+            time.sleep(1500 - (nowTime - startTime))
         self.startThreads()
 
 #########neighbor connect function ###############
@@ -501,6 +508,11 @@ class Node(object):
         listen_thread = threading.Thread(name='PUB/SUB', target=self.listen)
         listen_thread.start()
         self.threads.append(listen_thread) 
+
+        #Thread to listen to tx
+        listentx_thread = threading.Thread(name='PUB/SUBtx', target=self.listentx)
+        listentx_thread.start()
+        self.threads.append(listentx_thread)
         
         listenInsert_thread = threading.Thread(name='listenInsert', target=self.listenInsert)
         listenInsert_thread.start()
@@ -812,7 +824,8 @@ class Node(object):
             print(str(e))
 
     def sendControl(self,message):
-        values = parameter.pblock
+        # values = parameter.pblock
+        values = sqldb.selecttx(parameter.blocksize)
         trust = parameter.trusted
         #while True and not self.k.is_set():
         #    self.block_signal.wait()
@@ -829,6 +842,15 @@ class Node(object):
         user_stake = int(message[2])
         bloom_filter = message[3]
         srcaddr = message[4]
+        self.bestblocksemaphore.acquire()
+        if (self.bestblock):
+            if (b.round<self.bestblock[0].round) or ((b.round <= self.bestblock[0].round) and (b.proof_hash < self.bestblock[0].proof_hash)):
+                self.bestblock = b,values
+        else:
+            self.bestblock = b,values
+        for i in values:
+            a = sqldb.verifytxnotinblock(i)
+        self.bestblocksemaphore.release()
         setsend = []
         c = 0                    
         for k in self.peers:
@@ -839,7 +861,7 @@ class Node(object):
         message = [consensus.MSG_BLOCK,ip,str(user_stake),b,values,bloom_filter]
         message = pickle.dumps(message,2)
         #print("####START SEND BLOCK####")
-        #print(b.hash)                        
+        #print(b.hash)        
         for k in setsend:
         #for k in self.peers:
             #start_new_thread(self.sendlateblock, (message,k))
@@ -886,7 +908,7 @@ class Node(object):
                 self.bloomf.add(k['ipaddr'],bloom_filter)
         message = [consensus.MSG_TX, ip, tx, bloom_filter]
         message = pickle.dumps(message,2)
-        for k in psetsend:
+        for k in setsend:
             try:
                 tsend = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 tsend.connect((k,self.port))                                      
@@ -985,7 +1007,16 @@ class Node(object):
             tx = message[2]
             bloom_filter = message[3]
             message = [tx,ip,bloom_filter]
-            start_new_thread(self.sendtx, (message,))
+            currentRound =  int(math.floor((float(time.mktime(datetime.datetime.now().timetuple()))  - float(parameter.GEN_ARRIVE_TIME))/ parameter.timeout))         
+            if(currentRound not in self.sendtrans):
+                self.sendtrans[currentRound] = self.checktx.new_filter()               
+            status = self.checktx.check(tx.id_hash,self.sendtrans[currentRound])
+            if(not status):
+                a = sqldb.verifytxnotinblock(tx)
+                self.checktx.add(tx.id_hash,self.sendtrans[currentRound])
+                start_new_thread(self.sendtx, (message,))
+                # print('#######received transaction:', tx.id_hash)
+                sqldb.insertnewtx(tx)
         else:
             print("LISTEN: MESSAGE NOT FOUND")       
    
@@ -995,7 +1026,15 @@ class Node(object):
         self.brec.listen(5)
         while True and not self.k.is_set():            
             c,addr = self.brec.accept()
-            start_new_thread(self.worker, (c,addr[0],))             
+            start_new_thread(self.worker, (c,addr[0],))   
+
+
+    def listentx(self):
+        self.brectx.bind((self.ipaddr,self.porttx))        
+        self.brectx.listen(5)
+        while True and not self.k.is_set():            
+            c,addr = self.brectx.accept()
+            start_new_thread(self.worker, (c,addr[0],))            
  
     def listenInsert(self):
         """ Listen to block messages in a REQ/REP socket - We need to change from SUP to REQ/REP, because 
@@ -1070,7 +1109,18 @@ class Node(object):
                 prevTime = float(time.mktime(datetime.datetime.now().timetuple()))
                 currentRound =  int(math.floor((float(time.mktime(datetime.datetime.now().timetuple()))  - float(parameter.GEN_ARRIVE_TIME))/ parameter.timeout))                                
                 print("CURRENT_ROUND: ", currentRound)
-
+                if(status): 
+                    if (currentRound - 1) in self.sendbf:
+                        del self.sendbf[currentRound - 1]
+                    if (currentRound - 1) in self.sendtrans:
+                        del self.sendtrans[currentRound - 1]
+                    if (self.bestblock):
+                        if self.bestblock[0].round == (currentRound-1):
+                            for i in self.bestblock[1]:
+                                sqldb.updatetxstatus(i.id_hash,2)
+                                sqldb.txinblock(i,self.bestblock[0])
+                            self.bestblock = None
+                            sqldb.removefbtx()
                 #self.stableBlock() #stableround
                 self.semaphore.acquire()
                 if(self.fmine):                            
@@ -1088,7 +1138,7 @@ class Node(object):
                 if(nowTime - prevTime < parameter.timeout):
                     print("ROUND SLEEP TIME: ",parameter.timeout - (nowTime - prevTime))
                     if((parameter.timeout - (nowTime - prevTime)) > 0):
-                        time.sleep(parameter.timeout - (nowTime - prevTime))           
+                        time.sleep(parameter.timeout - (nowTime - prevTime)) 
                 nowTime = float(time.mktime(datetime.datetime.now().timetuple()))
             else:
                 time.sleep(1)    
@@ -1149,6 +1199,10 @@ class Node(object):
                     print("prevTime:", prevTime)
             else:        
                 time.sleep(1)'''
+
+    def gettx(self):
+        a = sqldb.selecttx(1666)
+        return a
 
     def generateNewblock(self, round):
         """ Loop for PoS in case of solve challenge, returning new Block object """
@@ -2075,10 +2129,9 @@ def main():
     h = hashlib.sha256(str(args.ipaddr)).hexdigest()            
     s = parameter.numStake[1][h][0]
     n.setStake(s)
-    startTime = 1610285279.0
+    startTime = 1625939865.0
     msg_start_peers = threading.Thread(name='startnode', target=n.startnode, kwargs={'ipaddr':args.ipaddr,'startTime':startTime})
     msg_start_peers.start()
-                
 
     try:
         while True:
