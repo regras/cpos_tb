@@ -348,11 +348,11 @@ def TrustandPeers():
     contIPs = 0
     for i in range(0,cont+2):
         if i == 0:
-            first = 2
+            first = 3
         else:
             first = 0
         for j in range(first,256):            
-            trusted=trusted+['10.1'+str(i)+'.'+str(j)]
+            trusted=trusted+['10.1.'+str(i)+'.'+str(j)]
             contIPs=contIPs+1
             if(contIPs == trust):
                 break
@@ -539,7 +539,7 @@ GEN_ARRIVE_TIME = 1573486728
 THRESHOLD = 2
 
 # Time in seconds
-timeout = 45
+timeout = 60
 # difficulty
 
 ### Test Variables ###
@@ -572,15 +572,15 @@ hW = int(W * float(1 - q)) #honest coins
 
 qW = int(W * float(q)) #dishonest coins
 
-tal = 25 #proposer parameter
+tal = 10 #proposer parameter
 
 txround = 1000
 
 difficulty = float(math.log(W,2) - math.log(tal,2)) 
 
-nodes = 400 #num nodes
+nodes = 4 #num nodes
 
-k = 6 #fraction of connected peers
+k = 2 #fraction of connected peers
 trust = 2 #fraction of trust nodes
 theta = 0.5 #threshold
 trusted,peers = TrustandPeers()

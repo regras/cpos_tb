@@ -46,7 +46,7 @@ def defineNeighbors():
                     #if (limit < k - 1) or fpeer:
                     if ip not in neighbors:
                         neighbors[ip] = []
-                    if index not in neighbors[ip] and len(neighbors[index]) < k:
+                    if index not in neighbors[ip] and len(neighbors[index]) <= k:
                         neighbors[ip].append(index)                        
                         neighbors[index].append(ip)
                         limit = limit + 1

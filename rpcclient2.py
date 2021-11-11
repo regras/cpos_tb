@@ -240,7 +240,7 @@ exit                Terminate and exit the node.py program running
 
                     if(avgconf > 0):
                         avg = avgconf / float(len(listAvgConf))
-                        print("block confirmation average in the network view (block/round): %f \n" % avg)
+                        print("Latency confirmation average in the network view (rounds): %f \n" % avg)
                         variance = statistics.pvariance(listAvgConf,avg)
                         print("variance of confirmed block average: %f \n" % variance)
                     print("\n")

@@ -1822,7 +1822,8 @@ def explorer(num,node='-1'):
         numblockstable = len(queries)
         print(queries)
         for query in queries:
-            avgconf = avgconf + float(1) / float(query[14] - query[2])
+            #avgconf = avgconf + float(1) / float(query[14] - query[2])
+            avgconf = avgconf + (float(query[14] - query[2]))
             #blocks produced on main chain
             cursor.execute("SELECT COUNT(*) FROM log_block WHERE node = '%s' and prev_hash = '%s' and round = %d and id = %d" %(node,query[3],int(query[2]),int(query[1])))
             mblocks = cursor.fetchone()
