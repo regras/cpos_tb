@@ -348,11 +348,11 @@ def TrustandPeers():
     contIPs = 0
     for i in range(0,cont+2):
         if i == 0:
-            first = 1
+            first = 3
         else:
             first = 0
         for j in range(first,256):            
-            trusted=trusted+['10.0.'+str(i)+'.'+str(j)]
+            trusted=trusted+['10.1.'+str(i)+'.'+str(j)]
             contIPs=contIPs+1
             if(contIPs == trust):
                 break
@@ -374,12 +374,12 @@ def TrustandPeers():
     #print cont
     for i in range(0,cont+2):
         if i == 0:
-            first = 1
+            first = 3
         else:
             first = 0
         for j in range(first,256):
             #if (i != 2) or (j >= 120 or j <= 89):
-            peers=peers+['10.0.'+str(i)+'.'+str(j)]
+            peers=peers+['10.1.'+str(i)+'.'+str(j)]
             contIPs=contIPs+1
             if(contIPs == nodes):
                 break
@@ -578,7 +578,7 @@ txround = 1000
 
 difficulty = float(math.log(W,2) - math.log(tal,2)) 
 
-nodes = 4 #num nodes
+nodes = 8 #num nodes
 
 k = 2 #fraction of connected peers
 trust = 2 #fraction of trust nodes

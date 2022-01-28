@@ -1,0 +1,23 @@
+FROM ubuntu:bionic
+
+RUN apt-get update && apt-get install -y openssh-server
+RUN mkdir /var/run/sshd
+RUN echo 'root:docker' | chpasswd
+RUN sed -i 's/#*PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config
+
+WORKDIR /home/martins/bc_pos_docker
+
+RUN apt-get update && \ 
+apt-get install net-tools iputils-ping sqlite moreutils bash-completion python screen python-zmq python-configparser python-bitarray python-pip  -y
+RUN pip install mmh3
+RUN pip install statistics
+
+EXPOSE 9000
+EXPOSE 9001
+EXPOSE 22
+EXPOSE 9999
+
+#CMD ["tail", "-f", "/dev/null"]
+
+
+

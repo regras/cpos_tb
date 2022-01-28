@@ -3,9 +3,9 @@ services:
   cpos:
     image: diegofgm/martins:cpos
     networks:
-      - netppos
+      - netcpos
     deploy:
-      replicas: 4
+      replicas: 8
 networks:
-  netppos:
+  netcpos:
      external: True
