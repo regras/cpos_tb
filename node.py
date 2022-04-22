@@ -2165,7 +2165,7 @@ def main():
     h = hashlib.sha256(str(args.ipaddr)).hexdigest()            
     s = parameter.numStake[1][h][0]
     n.setStake(s)
-    startTime = 1631303779.0
+    startTime = 1650656634
     msg_start_peers = threading.Thread(name='startnode', target=n.startnode, kwargs={'ipaddr':args.ipaddr,'startTime':startTime})
     msg_start_peers.start()
 
