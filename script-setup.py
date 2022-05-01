@@ -7,7 +7,7 @@ x = float(time.mktime(datetime.datetime.now().timetuple()))
 #leitura do arquivo node
 with open("node.py", "r") as node:
     file = node.readlines()
-file[2167] = "    startTime = " + str(int(x)) + '\n'
+file[2171] = "    startTime = " + str(int(x)) + '\n'
 
 #escrita do tempo
 with open("node.py", 'w') as node:
