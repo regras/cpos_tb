@@ -2166,7 +2166,7 @@ def main():
     try:        
         s = parameter.numStake[1][h][0]
     except:
-        print(h)
+        print("DEBUG" str(h))
         time.sleep(99999999)
     n.setStake(s)
     startTime = 1651629166
