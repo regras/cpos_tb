@@ -2163,10 +2163,12 @@ def main():
 
     print("starting peer...")
     h = hashlib.sha256(str(args.ipaddr)).hexdigest()
+    print(type(parameter.numStake))
+    print("\n")
     try:        
         s = parameter.numStake[1][h][0]
     except:
-        print("DEBUG" str(h))
+        print("DEBUG: " str(h))
         time.sleep(99999999)
     n.setStake(s)
     startTime = 1651629166
