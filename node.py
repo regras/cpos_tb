@@ -2162,8 +2162,12 @@ def main():
         n.f.set()
 
     print("starting peer...")
-    h = hashlib.sha256(str(args.ipaddr)).hexdigest()            
-    s = parameter.numStake[1][h][0]
+    h = hashlib.sha256(str(args.ipaddr)).hexdigest()
+    try:        
+        s = parameter.numStake[1][h][0]
+    except:
+        print(h)
+        time.sleep(99999999)
     n.setStake(s)
     startTime = 1651629166
     msg_start_peers = threading.Thread(name='startnode', target=n.startnode, kwargs={'ipaddr':args.ipaddr,'startTime':startTime})
