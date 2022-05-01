@@ -357,7 +357,7 @@ class Node(object):
                 for i in peersList:
                     self.addPeer(i)
             else:
-                print "impossible to connect in some peer!"
+                print("impossible to connect in some peer!")
 
         '''if(self.fmine):
             #inform others peers that connected process is over
@@ -2163,15 +2163,15 @@ def main():
 
     print("starting peer...")
     h = hashlib.sha256(str(args.ipaddr)).hexdigest()
-    print(type(parameter.numStake))
-    print("\n")
+    #print(type(parameter.numStake))
+    #print("\n")
     try:        
         s = parameter.numStake[1][h][0]
     except:
-        print("DEBUG: " str(h))
-        time.sleep(99999999)
+        print("DEBUG: " + str(h))
+        #time.sleep(99999999)
     n.setStake(s)
-    startTime = 1651629166
+    startTime = 1651440045
     msg_start_peers = threading.Thread(name='startnode', target=n.startnode, kwargs={'ipaddr':args.ipaddr,'startTime':startTime})
     msg_start_peers.start()
 
