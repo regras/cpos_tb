@@ -25,8 +25,7 @@ if check > 0:
 #criacao de novos containers
 os.system("docker network rm netppos")
 os.system("docker image rm cpos")
-os.system("docker network create --driver overlay --subnet 10.1.0.0/22 --gateway 10.1.0.1 netppos")
-os.system("touch tx.txt")
-os.system("rm peers.pkl && python2 topology.py")
-os.system("docker build -t cpos .")
+ed9ef8278915
+os.system("docker network create --driver overlay --subnet 10.2.0.0/22 --gateway 10.2.0.1 netppos")
+os.system("touch tx.txt")os.system("docker build -t cpos .")
 os.system("docker stack deploy --compose-file docker-compose.yml cpos")
