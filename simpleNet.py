@@ -11,9 +11,11 @@ import numpy
 import sys, os
 import time
 import random
+
 # import parameter
 import math
 import hashlib
+
 # Sample usage
 # sudo python simpleNet.py <n>
 # n: number of hosts
@@ -21,20 +23,22 @@ import hashlib
 # file directory path to mount private dirs
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
+
 def testHostWithPrivateDirs(number=5):
     "Test bind mounts"
-    topo = SingleSwitchTopo( number )
-    privateDirs = privateDirs=[ (dir_path+'/blocks',
-     dir_path+'/tmp/%(name)s/blocks'),
-     dir_path+'/log' ]
-    host = partial( Host,
-                    privateDirs=privateDirs )
-    net = Mininet( topo=topo, host=host )
+    topo = SingleSwitchTopo(number)
+    privateDirs = privateDirs = [
+        (dir_path + "/blocks", dir_path + "/tmp/%(name)s/blocks"),
+        dir_path + "/log",
+    ]
+    host = partial(Host, privateDirs=privateDirs)
+    net = Mininet(topo=topo, host=host)
     net.start()
-    #startServer(net,number)
-    CLI( net )
+    # startServer(net,number)
+    CLI(net)
     stopServer(net.hosts)
     net.stop()
+
 
 # def startServer(net,number):
 #     stake = parameter.numStake
@@ -43,7 +47,7 @@ def testHostWithPrivateDirs(number=5):
 #     j = 1
 #     for h in net.hosts:
 #         stakeNode = []
-#         node = hashlib.sha256(str(h.IP())).hexdigest()            
+#         node = hashlib.sha256(str(h.IP())).hexdigest()
 #         for i in stake:
 #             #stakeNode = stakeNode + stake[i][j]
 #             stakeNode = stakeNode + stake[i][node]
@@ -69,10 +73,10 @@ def testHostWithPrivateDirs(number=5):
 #         h.cmd('rpc/rpcclient.py exit')
 #         info('*** Blockchain node stopping on %s\n' % h)
 
-if __name__ == '__main__':
-    setLogLevel( 'info' )
+if __name__ == "__main__":
+    setLogLevel("info")
     if len(sys.argv) >= 2:
         testHostWithPrivateDirs(int(sys.argv[1]))
     else:
         testHostWithPrivateDirs()
-    info( 'Done.\n')
+    info("Done.\n")

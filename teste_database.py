@@ -7,5 +7,6 @@ import leafchain
 import parameter
 from collections import deque, Mapping, defaultdict
 import pickle
+
 logger = logging.getLogger(__name__)
-databaseLocation = 'blocks/blockchain.db'
+databaseLocation = "blocks/blockchain.db"
