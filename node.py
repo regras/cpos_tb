@@ -29,7 +29,7 @@ from operator import itemgetter
 from bloomfilter import BloomFilter
 from thread import *
 import sys
-
+import logging
 
 #TODO blockchain class and database decision (move to only db solution?)
 #TODO peer management and limit (use a p2p library - pyre, kademlia?)
