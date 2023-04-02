@@ -29,7 +29,7 @@ from operator import itemgetter
 from bloomfilter import BloomFilter
 from thread import *
 import sys
-
+import logging
 
 logging.basicConfig(filename = 'testenode.log',filemode ="w", level = logging.DEBUG, format =" %(asctime)s - %(levelname)s - %(message)s")
 # usado para desabilidar o logging
