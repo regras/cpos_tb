@@ -7,6 +7,9 @@ from random import randint
 import pickle
 import zmq
 import consensus
+import logging
+
+#logging.basicConfig(filename = 'testenode.log',filemode ="w", level = logging.DEBUG, format =" %(asctime)s - %(levelname)s - %(message)s")
 class StopException(Exception):
     pass
 
@@ -32,7 +35,7 @@ class Transaction(object):
                 self.router.send_multipart([consensus.MSG_TX,tx])
                 m = self._poll(self.router)[0]
             except Exception as e:
-                print(str(e))
+                logging.info(str(e))
 
             self.router.disconnect("tcp://%s:%s" % (address, self.port+1))
         return m

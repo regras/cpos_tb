@@ -4,6 +4,9 @@ import time
 import datetime
 import hashlib
 import chaincontrol
+import logging
+
+#logging.basicConfig(filename = 'testenode.log',filemode ="w", level = logging.DEBUG, format =" %(asctime)s - %(levelname)s - %(message)s")
 # -*- coding: utf-8 -*-
 def structCommitted(tau,epsilon):
     committed = {}
@@ -43,7 +46,7 @@ def structCommitted(tau,epsilon):
             committed[deltar + 7] = 17
             committed[deltar + 8] = 17
         else:
-            print("epsilon error!")
+            logging.error("epsilon error!")
 
         sync_threshold[deltar] = 17
         sync_threshold[deltar + 1] = 19
@@ -86,7 +89,7 @@ def structCommitted(tau,epsilon):
             committed[deltar + 7] = 14
             committed[deltar + 8] = 13
         else:
-            print("epsilon error!")
+            logging.error("epsilon error!")
 
         sync_threshold[deltar] = 12
         sync_threshold[deltar + 1] = 13
@@ -129,7 +132,7 @@ def structCommitted(tau,epsilon):
             committed[deltar + 7] = 11
             committed[deltar + 8] = 11
         else:
-            print("epsilon error!")
+            logging.error("epsilon error!")
 
         sync_threshold[deltar] = 10
         sync_threshold[deltar + 1] = 11
@@ -172,7 +175,7 @@ def structCommitted(tau,epsilon):
             committed[deltar + 7] = 10
             committed[deltar + 8] = 10
         else:
-            print("epsilon error!")
+            logging.error("epsilon error!")
 
         sync_threshold[deltar] = 8
         sync_threshold[deltar + 1] = 9
@@ -214,7 +217,7 @@ def structCommitted(tau,epsilon):
             committed[deltar + 7] = 7
             committed[deltar + 8] = 7
         else:
-            print("epsilon error!")
+            logging.error("epsilon error!")
 
         sync_threshold[deltar] = 5
         sync_threshold[deltar + 1] = 6
@@ -259,7 +262,7 @@ def structCommitted(tau,epsilon):
             committed[deltar + 9] = 6
             committed[deltar + 10] = 6
         else:
-            print("epsilon error!")
+            logging.error("epsilon error!")
 
         sync_threshold[deltar] = 3
         sync_threshold[deltar + 1] = 4
@@ -323,7 +326,7 @@ def structCommitted(tau,epsilon):
             committed[deltar + 7] = 3
             committed[deltar + 8] = 3
         else:
-            print("epsilon error!")
+            logging.error("epsilon error!")
         ##sync threshold##
         sync_threshold[deltar] = 1
         sync_threshold[deltar + 1] = 1

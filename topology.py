@@ -2,6 +2,10 @@ import parameter
 import random
 from operator import itemgetter
 import pickle
+
+import logging
+
+#logging.basicConfig(filename = 'testenode.log',filemode ="w", level = logging.DEBUG, format =" %(asctime)s - %(levelname)s - %(message)s")
 def defineNeighbors():
     peers = parameter.peers
     k = parameter.k
@@ -15,7 +19,7 @@ def defineNeighbors():
         #fpeer = False
         fneig = False        
         while limit < k:
-            print limit            
+            logging.info(str(limit))            
             if (len(p) == 1 and ip in p):
                 p = []
             if(len(p) >= 1):
@@ -62,7 +66,7 @@ def defineNeighbors():
         if ip in p:
             id = p.index(ip)       
             del p[id]
-    print(neighbors)
+    logging.info(str(neighbors))
     with open('peers.pkl', 'wb') as output:
         pickle.dump(neighbors,output,pickle.HIGHEST_PROTOCOL)
     

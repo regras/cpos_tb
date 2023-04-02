@@ -10,6 +10,10 @@ import datetime
 import hashlib
 #find probability of k success (k nodes pass on network challenge and it produces a new block)
 
+import logging
+
+#logging.basicConfig(filename = 'testenode.log',filemode ="w", level = logging.DEBUG, format =" %(asctime)s - %(levelname)s - %(message)s")
+
 def Combinations(m,n):
   
     # calcula o fatorial de m
@@ -45,21 +49,21 @@ def Combinations(m,n):
 def sortition(userHash,stake):
     #p = cons.getTarget() / float(2**256)
     p = 0.0001
-    print("SUCCESS PROB: ", p)
-    print("STAKE: ", stake)
+    logging.info("SUCCESS PROB: "+str(p))
+    logging.info("STAKE: "+ str(stake))
     np = 1 - p
     q = int(userHash,16) / float(2**256)
-    print("Q: ", q)
+    logging.info("Q: "+str(q))
     j = 0
     limitInf = Combinations(stake,0) * ((np)**(stake))
     limitSup = limitInf + Combinations(stake,1) * p * (np**(stake - 1))
-    print("LIMIT INF: ", limitInf)
-    print("LIMIT SUP: ", limitSup)
+    logging.info("LIMIT INF: "+str(limitInf))
+    logging.info("LIMIT SUP: "+str(limitSup))
     while(q >= limitInf):
         j = j + 1
         limitInf = limitSup
         limitSup = limitSup + Combinations(stake,j+1) * (p**(j+1)) * (np**(stake - (j+1)))
-    print("RAFFLED NUMBER: ", j)
+    logging.info("RAFFLED NUMBER: "+str(j))
     return j
 
 def calcproofHash(node,round,stake):
@@ -83,13 +87,13 @@ def calcBlocks(stake,node):
             prevTime = nowTime
             round = int(math.floor((float(nowTime) - float(parameter.GEN_ARRIVE_TIME))/parameter.timeout))
             numRound = numRound + 1
-            print("Round: ",round)
+            logging.info("Round: "+str(round))
             status = False
             total = 0
             sucRound = 0
             for h in range(0,len(node)):
                 time.sleep(0.1)
-                print("Trying Node: ",node[h])
+                logging.info("Trying Node: "+str(node[h]))
                 subuser = calcproofHash(node[h],round,stake[0][h])
                 raffled = raffled + subuser
                 if(subuser > 0):
@@ -100,21 +104,21 @@ def calcBlocks(stake,node):
             
             if not status:
                 roundZero = roundZero + 1
-            print("\n")
-            print("PARTIAL RAFFLED: ", raffled)
-            print("PARTIAL ROUNDS: ", numRound)
-            print("PARTIAL SUCESS/ROUND: %f" %(raffled/float(numRound)))
-            print("PARTIAL BLOCKs/ROUND: %f" %(block/float(numRound)))
-            print("PARTIAL zero/ROUND: %f" %(roundZero/float(numRound)))
-            print("%d SUCESS ON ROUND:  %d" %(sucRound,numRound))
+            logging.info("\n")
+            logging.info("PARTIAL RAFFLED: "+str(raffled))
+            logging.info("PARTIAL ROUNDS: "+str(numRound))
+            logging.info("PARTIAL SUCESS/ROUND: %f" %(raffled/float(numRound)))
+            logging.info("PARTIAL BLOCKs/ROUND: %f" %(block/float(numRound)))
+            logging.info("PARTIAL zero/ROUND: %f" %(roundZero/float(numRound)))
+            logging.info("%d SUCESS ON ROUND:  %d" %(sucRound,numRound))
         time.sleep(1)
 
-    print("Total SUCESS: %d" %raffled)
-    print("Total rounds: %d" %numRound)
-    print("Total blocks: %d" %block)
-    print("block/round: %f", block / float(numRound))
-    print("suc/round: %f", raffled / float(numRound))
-    print("Total round zero: %d" %roundZero)
+    logging.info("Total SUCESS: %d" %raffled)
+    logging.info("Total rounds: %d" %numRound)
+    logging.info("Total blocks: %d" %block)
+    logging.info("block/round: %f", block / float(numRound))
+    logging.info("suc/round: %f", raffled / float(numRound))
+    logging.info("Total round zero: %d" %roundZero)
 
           
 

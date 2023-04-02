@@ -26,7 +26,7 @@ def connect():
         db = sqlite3.connect(databaseLocation,timeout=20,check_same_thread=False)
         cursor = db.cursor()
     except Exception as e:
-        print(str(e))
+        logging.debug(str(e))
     return db
 
 def dbConnect():
@@ -188,7 +188,7 @@ def isLeaf(index):
         else:
             return True
     except Exception as e:
-        print(str(e))
+        logging.info(str(e))
 
     return False
 
@@ -201,7 +201,7 @@ def getBlockIntervalByRound(fround,lround):
         db.close()
         return queries
     except Exception as e:
-        print(str(e))
+        logging.info(str(e))
 
 def getBlockByRound(round):
     try:
@@ -214,7 +214,7 @@ def getBlockByRound(round):
         else:
             return None
     except Exception as e:
-        print(str(e))
+        logging.info(str(e))
         
 def getLogBlock(hash):
     try:
@@ -228,7 +228,7 @@ def getLogBlock(hash):
         else:
             return None
     except Exception as e:
-        print(str(e))
+        logging.info(str(e))
     
 def checkSyncChain(lround,round):
     try:
@@ -272,7 +272,7 @@ def checkSyncChain(lround,round):
             
     
     except Exception as e:
-        print(str(e))
+        logging.info(str(e))
 
 def getCurrentSuc(lround,round):
     try:
@@ -287,7 +287,7 @@ def getCurrentSuc(lround,round):
         db.close()
         return s
     except Exception as e:
-        print(str(e))
+        logging.info(str(e))
         
 
 def reversionBlock(round, lround, commit, db = None):
@@ -317,14 +317,15 @@ def reversionBlock(round, lround, commit, db = None):
                     while(item[1] >= query[1] and (index_round - int(query[2]) >= 1)):
                         #print("index block atual: %d" %int(query[1]))
                         #print("index block variando: %d" %int(item[1])) 
-                        print("query hash: ", query[4])
-                        print("lround: ", lround)
-                        print("item[2]: ", item[2])            
-                        print("index_round: ", index_round)  
-                        print("item[1]: ", item[1])
-                        print("query[1]: ", query[1])
+                        logging.info("query hash: "+str(query[4]))
+                        logging.info("lround: %s", lround)
+                        logging.info("item[2]: %s", item[2])
+                        logging.info("index_round: %s", index_round)
+                        logging.info("item[1]: %s", item[1])
+                        logging.info("query[1]: %s", query[1])
+                        
                         while(index_round > int(item[2])):
-                            print("index_round > int(item[2])")
+                            logging.info("index_round > int(item[2])")
                             #z[index_round] = zr_0
                             s[index_round] = 0
                             index_round = index_round - 1
@@ -332,7 +333,7 @@ def reversionBlock(round, lround, commit, db = None):
                         if(index_round == int(item[2]) and (item[1] > query[1])):
                             #zr = chaincontrol.calcZr(item[12],item[13])
                             #z[index_round] = zr
-                            print("index_round == int(item[2])")
+                            logging.info("index_round == int(item[2])")
                             s[index_round] = item[13]
                             index_round = index_round - 1
 
@@ -344,15 +345,15 @@ def reversionBlock(round, lround, commit, db = None):
                             return lround, False, commit
 
                 deltar = (round - parameter.roundTolerancy) - query[2]
-                print("s: ",s)
-                print("deltar: ",deltar)
+                logging.info("s: "str(s))
+                logging.info("deltar: "+str(deltar))
                 if(deltar >= 2):            
                     check,sync = chaincontrol.checkcommitted(s,deltar)
                     if(check):
                         lround = query[2]
                         cursor.execute("UPDATE localChains set stable = 1, round_stable = %d where hash = '%s'" %((round - parameter.roundTolerancy - 1),query[4]))
                         db.commit()
-                        print("BLOCK INDEX %d COMMITED" %query[1])
+                        logging.info("BLOCK INDEX %d COMMITED" %query[1])
                         commit = query[1]
                     else:
                         if(not sync):
@@ -373,7 +374,7 @@ def reversionBlock(round, lround, commit, db = None):
         return lround, True, commit
 
     except Exception as e:
-        print(str(e))
+        logging.debug(str(e))
         
 def getLastStableBlock(lastBlockSimulation):
     db = sqlite3.connect(databaseLocation)
@@ -418,8 +419,8 @@ def verifyRoundBlock(blockId,blockRound):
     query = cursor.fetchone()
     db.close()
     if(query):
-        print("VERIFIED ROUND BLOCK: ", query[0])
-        print("NEW BLOCK ROUND: ", blockRound)
+        logging.info("VERIFIED ROUND BLOCK: "+str(query[0]))
+        logging.info("NEW BLOCK ROUND: "+str(blockRound))
         if(blockRound <= query[0]):
             return True, query[0]
         else:
@@ -429,7 +430,7 @@ def verifyRoundBlock(blockId,blockRound):
 
 def dbReqBlocks(messages):
     if(messages):
-        print("dbReqBlocks")
+        logging.info("dbReqBlocks")
         forkHash = messages[0]
         headChains = pickle.loads(messages[1])
         blockHash = messages[2]
@@ -444,10 +445,8 @@ def dbGetSubChain(blockHash, forkHash):
     subChain = defaultdict(list)
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
-    print("BlockHash")
-    print(blockHash)
-    print("pointHash")
-    print(forkHash)
+    logging.info("BlockHash"+str(blockHash))
+    logging.info("pointHash"+str(forkHash))
     cursor.execute("SELECT id from localChains WHERE hash = '%s'" % blockHash)
     query = cursor.fetchone()
     if(query):
@@ -518,7 +517,7 @@ def knowLogBlock(hash):
         else:
             return False
     except Exception as e:
-        print(str(e))
+        logging.debug(str(e))
         return False
 
 def dbKnowBlock(hash):
@@ -534,7 +533,7 @@ def dbKnowBlock(hash):
             db.close()
             return False
     except Exception as e:
-        print(str(e))
+        logging.debug(str(e))
         return False
 
 def dbReqBlock(messages):
@@ -572,7 +571,7 @@ def dbReqBlock(messages):
             return pickle.dumps(getLogBlock(hash),2)
 
     except Exception as e:
-        print(str(e))
+        logging.debug(str(e))
     return None
 
 #####end functions to sync
@@ -624,7 +623,7 @@ def getBlock(hash=None):
             db.close()
             return dbtoBlock(query)
     except Exception as e:
-        print(str(e))
+        logging.debug(str(e))
     db.close()
     return None
 
@@ -658,8 +657,7 @@ def getForks(lastForks):
         for lastFork in lastForks:
             fork = lastForks[lastFork][0]
             if(fork[0] == query[0]):
-                print("Retorna fork")
-                print(fork[0])
+                logging.info("Retorna fork"+str(fork[0]))
                 sentFork = True
                 break
         if(not sentFork):
@@ -671,8 +669,7 @@ def getForks(lastForks):
             sendQueries[index].append(query)
 
     db.close()
-    print("sendQueries")
-    print(sendQueries)
+    logging.debug("sendQueries"+str(sendQueries))
     return sendQueries
 
 def dbNumForks():
@@ -721,7 +718,7 @@ def setLogFork(startBlock, endBlock, startFork, endFork):
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
     #if(status == 1):
-    print("ENTROU SETLOGFORK")
+    logging.debug("ENTROU SETLOGFORK")
     cursor.execute('INSERT INTO log_fork (startBlock, endBlock, startFork, endFork) VALUES (?,?,?,?)',(
     startBlock,
     endBlock,
@@ -788,7 +785,7 @@ def changeArrivedBlock(b,accepted):
             db.commit()
             db.close()
         except Exception as e:
-            print(str(e)) 
+            logging.debug(str(e)) 
 
 def setArrivedBlock(b,accepted,db=None):    
     if(b):
@@ -946,7 +943,7 @@ def dbCheck():
     # Empty database
     if not lastBlock_db:
         genesis = bc.getLastBlock()
-        print(genesis.blockInfo())
+        logging.info(str(genesis.blockInfo()))
         writeChain(genesis)
         #wwriteBlock(genesis)
 
@@ -1058,7 +1055,7 @@ def getIdChain(blockHash):
         else:
             return None
     except sqlite3.IntegrityError:
-        print("impossible to return chain id")
+        logging.warning("impossible to return chain id")
 
 def blockIsPriority(blockIndex,proof_hash):
     db = sqlite3.connect(databaseLocation,timeout=40)
@@ -1073,7 +1070,7 @@ def blockIsPriority(blockIndex,proof_hash):
                     return False
         return True
     except sqlite3.IntegrityError:
-        print("query failed.")
+        logging.warning("query failed.")
 
 def getLastBlock():
     db = sqlite3.connect(databaseLocation)
@@ -1125,7 +1122,7 @@ def getAllKnowChains():
         else:
             return None
     except sqlite3.IntegrityError:
-        print("getAllKnowBlock Error")
+        logging.error("getAllKnowBlock Error")
 
 def updateBlock(lastTimeTried,hash):
     try:
@@ -1135,7 +1132,7 @@ def updateBlock(lastTimeTried,hash):
         db.commit()
         db.close()
     except sqlite3.IntegrityError:
-        print("Update block error")
+        logging.error("Update block error")
 
 def blockIsLeaf(blockIndex, blockPrevHash): 
     db = sqlite3.connect(databaseLocation)
@@ -1184,7 +1181,7 @@ def removeAllBlocksHigh(blockIndex,hash,db=None):
         db.close()
         return True
     except sqlite3.IntegrityError:
-        print("remove from localChains error")    
+        logging.error("remove from localChains error")    
     db.close()
     return False
 
@@ -1213,7 +1210,7 @@ def writeChain(b):
 def replaceChain(b):
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
-    print('BLOCK TO INSERT OR REPLACE ON CHAIN TABLE', b)
+    logging.warning('BLOCK TO INSERT OR REPLACE ON CHAIN TABLE'+str(b))
     try:
         if isinstance(b, tuple):
             cursor.execute('REPLACE INTO chain VALUES (?,?,?,?,?,?,?,?)', b)
@@ -1281,7 +1278,7 @@ def removeBlock(index=None,round=None,db=None):
         db.commit()
         db.close()
     except Exception as e:
-        print(str(e))
+        logging.debug(str(e))
 
 def removeChain(blockHash):
     removedBlocks = {}
@@ -1316,8 +1313,7 @@ def removeChain(blockHash):
             i = len(removedBlocks)
             while i >= 1:
                 hash = removedBlocks[i][0]
-                print("hash removed")
-                print(hash)
+                logging.info("hash removed"+str(hash))
                 cursor.execute("DELETE FROM localChains where hash = '%s'" % hash)
                 db.commit()
                 i = i - 1
@@ -1336,8 +1332,7 @@ def removeLeafChain(messages):
     cursor = db.cursor()
     cursor.execute("SELECT max(id), hash, fork, arrive_time from localChains where leaf_head = '%s' and fork <> 0" % messages[1])
     query = cursor.fetchone()
-    print("QUERY")
-    print(query)
+    logging.info("QUERY"+str(query))
 
     if(query[0]):
         ###insert log_fork
@@ -1362,8 +1357,7 @@ def removeLeafChain(messages):
             
         block_hash = query[1]
         fork = query[2]
-        print("Fork")
-        print(fork)
+        logging.info("Fork"+str(fork))
         fork = int(fork) - 1
         cursor.execute("DELETE FROM localChains where leaf_head = '%s' and id > (SELECT max(id) from localChains where leaf_head = '%s' and fork <> 0)" % (messages[1],messages[1]))
         cursor.execute("UPDATE localChains set fork = %d where hash = '%s' " % (fork, block_hash))
@@ -1371,9 +1365,9 @@ def removeLeafChain(messages):
         #return True
        
     else:
-        print("REMOVE ALL CHAIN")
-        print("HEAD")
-        print(messages[1])
+        logging.warning("REMOVE ALL CHAIN")
+        logging.warning("HEAD")
+        logging.warning(str(messages[1]))
         #remove all chain.
         cursor.execute("SELECT *  from localChains where id = (SELECT min(id) from localChains where leaf_head = '%s')" % messages[1])
         query = cursor.fetchone()
@@ -1418,7 +1412,7 @@ def removeLeafChain(messages):
                 #print(prev_hash)
                 if(int(fork) == 0):
                     if(not checkChainIsLeaf(query)):
-                        print("not checkChainIsLeaf")
+                        logging.info("not checkChainIsLeaf")
                         cursor.execute("DELETE FROM LocalChains where hash = '%s'" % prev_hash)
                         db.commit()
 
@@ -1434,7 +1428,7 @@ def removeLeafChain(messages):
                                 db.commit()
                             
                 elif(int(fork) > 0):
-                    print("Update fork point")
+                    logging.warning("Update fork point")
                     fork = int(fork) - 1
                     cursor.execute("UPDATE localChains set fork = %d where hash = '%s' " % (fork, prev_hash))       
                     db.commit()
@@ -1512,17 +1506,14 @@ def dbCheckChain(messages):
     #    return query
     hash = messages[0]
     k = 0
-    print("ULTIMO HASH CONHECIDO")
-    print(hash)
-    print("HASH RECEBIDO DO FUTURO")
-    print(messages[1])
+    logging.info("ULTIMO HASH CONHECIDO"+str(hash))
+    logging.info("HASH RECEBIDO DO FUTURO"+str(messages[1]))
     while (hash):
         cursor.execute("SELECT * FROM localChains WHERE prev_hash = '%s'" % hash)
         query = cursor.fetchone()
         if(query):
             hash = query[3]
-            print("PROXIMO HASH")
-            print(hash)
+            logging.info("PROXIMO HASH"+str(hash))
             blocks[k].append(query)
             if(hash == messages[1]):
                 return pickle.dumps(blocks)
@@ -1657,7 +1648,7 @@ def dbAddTx(tx):
         return reply,status  
 
     except Exception as e:
-        print(str(e))   
+        logging.debug(str(e))   
 
 
 def firstTransactions():
@@ -1731,7 +1722,7 @@ def createtx(node_ipaddr):
         db.close()
         return tx
     except Exception as e:
-        print(str(e))
+        logging.debug(str(e))
 
 def insertReversion(round,lastround,db=None):
     try:
@@ -1752,7 +1743,7 @@ def insertReversion(round,lastround,db=None):
         db.close()
         return id
     except Exception as e:
-        print(str(e)) 
+        logging.debug(str(e)) 
     return None
 
 def addBlocksReversion(fblock,lblock,idreversion,db=None):
@@ -1772,7 +1763,7 @@ def addBlocksReversion(fblock,lblock,idreversion,db=None):
                 db.commit()
             db.close()
     except IntegrityError as e:
-        print(str(e))
+        logging.debug(str(e))
 
 def get_trans(num):
     #try:
@@ -1788,8 +1779,8 @@ def get_trans(num):
     tavg = 0
     if(queries):
         for query in queries:
-            print(query)
-            print(query[1])
+            logging.info(str(query))
+            logging.info(str(query[1]))
             tavg = tavg + (float(query[0]) - float(query[1]))
         tavg = tavg / len(queries)
         reply = reply + [tavg]
@@ -1820,7 +1811,7 @@ def explorer(num,node='-1'):
     queries = cursor.fetchall()
     if(queries):
         numblockstable = len(queries)
-        print(queries)
+        logging.info(str(queries))
         for query in queries:
             #avgconf = avgconf + float(1) / float(query[14] - query[2])
             avgconf = avgconf + (float(query[14] - query[2]))

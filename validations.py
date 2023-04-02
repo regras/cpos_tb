@@ -6,6 +6,9 @@ import time
 import datetime
 from decimal import Decimal
 import chaincontrol
+import logging
+
+#logging.basicConfig(filename = 'testenode.log',filemode ="w", level = logging.DEBUG, format =" %(asctime)s - %(levelname)s - %(message)s")
 def validateChallenge(block, stake):
     target = consensus.Consensus().target
     if int(block.hash,16) < target:
@@ -15,19 +18,19 @@ def validateChallenge(block, stake):
 def sortition(userHash,stake,cons):
     p = cons.getTarget() / float(2**256)
     #p = 0.000125
-    print("SUCCESS PROB: ", p)
-    print("STAKE: ", stake)
+    logging.info("SUCCESS PROB: "+str(p))
+    logging.info("STAKE: "+str(stake))
     np = 1 - p
     q = int(userHash,16) / float(2**256)
-    print("Q: ", q)
+    logging.info("Q: "+str(q))
     j = 0
 
     limitInf = chaincontrol.Combinations(stake,0) * ((np)**(stake))    
     limitSup = limitInf + chaincontrol.Combinations(stake,1) * p * (np**(stake - 1))
     
     #limitSup = limitInf + comb * p * (np**(stake - 1))
-    print("LIMIT INF: ", limitInf)
-    print("LIMIT SUP: ", limitSup)
+    logging.info("LIMIT INF: "+str(limitInf))
+    logging.info("LIMIT SUP: "+str(limitSup))
     while(q >= limitInf):
         j = j + 1
         limitInf = limitSup
@@ -35,7 +38,7 @@ def sortition(userHash,stake,cons):
         limitSup = limitSup + chaincontrol.Combinations(stake,j+1) * (p**(j+1)) * (np**(stake - (j+1)))
         #limitSup = limitSup + comb * (p**(j+1)) * (np**(stake - (j+1)))
         #print("limitSup: ", limitSup)
-    print("RAFFLED NUMBER: ", j)
+    logging.info("RAFFLED NUMBER: "+str(j))
     return j
 
 def validateProofHash(block,user_stake,cons):
@@ -44,7 +47,7 @@ def validateProofHash(block,user_stake,cons):
     if(j == block.subuser):
         proof_hash,subuser = cons.calcProofHash(userHash,blockHash,j)
         if(int(proof_hash,16) == int(block.proof_hash,16)):
-            print("VERIFIED")
+            logging.debug("VERIFIED")
             return True,j
     return False,j
 
@@ -100,7 +103,7 @@ def validateChain(bc, chain, stake):
         if validateBlock(b, lastBlock):
             #print("BLOCK OK")
             if validateChallenge(b, stake) and validateRound(b,bc) and validateExpectedRound(b,lastBlock):
-                print("BLOCO VALIDO SINCRONIZADO")
+                logging.debug("BLOCO VALIDO SINCRONIZADO")
                 lastBlock=b
                 bc.addBlocktoBlockchain(b)
                 sqldb.writeBlock(b)
@@ -128,8 +131,8 @@ def validateExpectedLocalRound(block):
     #    calculated_rounds = calculated_rounds + 1    
 
     #expected_round = leaf_round + calculated_rounds
-    print("BLOCK ROUND", block.round)
-    print("EXPECTED_ROUND", expected_round)
+    logging.info("BLOCK ROUND"+str(block.round))
+    logging.info("EXPECTED_ROUND"+str(expected_round))
     #print("Expected Round")
     #print(leaf_round)
     #print("Block Round")

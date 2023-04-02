@@ -5,7 +5,9 @@ import sqldb
 import os
 import parameter
 import math
+import logging
 
+#logging.basicConfig(filename = 'testenode.log',filemode ="w", level = logging.DEBUG, format =" %(asctime)s - %(levelname)s - %(message)s")
 def newReversion(round,lastround):
     return sqldb.insertReversion(round,lastround)
 
@@ -38,8 +40,7 @@ def calcParameters(node,startSimulation, endSimulation,lastForks,numBlocks):
     numBlocksFork = 0
     for fork in forks:
         forkQuery = forks[fork][0]
-        print("forks to realize")
-        print(forkQuery)
+        logging.warning("forks to realize: "+str(forkQuery))
         ###store fork on the lastForks variable
         if(lastForks):
             index = max(lastForks) + 1
@@ -81,14 +82,12 @@ def calcParameters(node,startSimulation, endSimulation,lastForks,numBlocks):
         lastRound = roundBlock          
         i = i + 1
     if(numBlocks):
-        print("sumRounds")
-        print(sumRounds)
+        logging.info("sumRounds: "+str(sumRounds))
         if(numBlocks > 1):
             avgRound = sumRounds / (numBlocks - 1)
         else:
             avgRound = sumRounds / (numBlocks)
-        print("avgRound")
-        print(avgRound)
+        logging.info("avgRound: "+str(avgRound))
         #avgRound = roundBlock(avgRound,2)
     ipaddr = str(node.getNodeIp())
     countRound = node.getCountRound()
