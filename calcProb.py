@@ -6,7 +6,9 @@ import itertools
 from decimal import Decimal
 import sys
 #find probability of k success (k nodes pass on network challenge and it produces a new block)
+import logging
 
+#logging.basicConfig(filename = 'testenode.log',filemode ="w", level = logging.DEBUG, format =" %(asctime)s - %(levelname)s - %(message)s")
 def Combinations(m,n):
   
     # calcula o fatorial de m
@@ -57,7 +59,7 @@ def pk_r(ps, pf, r):
         else:
             #while(countProbK <= 0.999):
             while(countProbK <= 0.999):
-                print("k: ", j)
+                logging.debug("k: "+ str(j))
             #while(j <= parameter.NODES ** (x + 1)):
                 pj = 0
                 #len_x = len(probK[x-1])
@@ -104,7 +106,7 @@ def pk_r(ps, pf, r):
                 if (j == 100 or pj == 0):
                     break
                 j = j + 1
-        print("prob sum round %f: %f" %(x, countProbK))
+        logging.info("prob sum round %f: %f" %(x, countProbK))
         x = x + 1
     return probK
 def numBlockExpected(pk,n,r):
@@ -114,16 +116,14 @@ def numBlockExpected(pk,n,r):
     return numBlock 
 
 def probFork(pk,pnf,psn,r):
-    print("pnf")
-    print(pnf)
-    print("1-pnf")
-    print(1-pnf)
+    logging.debug("pnf"+str(pnf))
+    logging.debug("1-pnf"+str(1-pnf))
     if(r >= 1):
         k = 1
         pf_r = 0
         NumRound = 0
         while(k <= len(pk[r-1]) - 1):
-            print(len(pk[r-1]))
+            logging.debug(str(len(pk[r-1])))
         #while(k <= parameter.NODES**r):
             pf_i = 0
             numRound_i = 0
@@ -189,41 +189,37 @@ def main():
     
     cons = consensus.Consensus()
     ps = Decimal(cons.getTarget())/((2**(256) - 1))
-    print("ps")
-    print(ps)
+    logging.debug("ps"+str(ps))
     pf = 1 - ps
-    print("pf")
-    print(pf)
+    logging.debug("pf"+str(pf))
 
     pk = pk_r(ps,pf,r)
    
     for i in range(0, parameter.NODES + 1):
-        print("rodada r = 0 e k = %d" % i)
-        print(pk[0][i])
+        logging.info("rodada r = 0 e k = %d" % i)
+        logging.info(pk[0][i])
 
     for i in range(1, r + 1):
         for j in range(0, len(pk[i])):
         #for j in range(0, parameter.NODES**(i + 1) + 1):
-            print("rodada r = %d e k = %d" %(i,j))
-            print(pk[i][j])
+            logging.info("rodada r = %d e k = %d" %(i,j))
+            logging.info(pk[i][j])
 
     pnf = (pf ** parameter.NODES) + (parameter.NODES * ps * (pf ** (parameter.NODES - 1)))
-    print(pnf)
+    logging.debug(str(pnf))
 
     #calc success probability to n nodes in one chain
     pns = 1 - (1 - ps) ** parameter.NODES
-    print(pns)
+    logging.debug(str(pns))
     while(r != -1):
         r = input("Digite (r) para probabilidade de fork:")
         if(r >= 0):
             Pfork, NumRound = probFork(pk,pnf, pns, r)
             numBlock = numBlockExpected(pk,parameter.NODES,r)
-            print("Fork probability on round : %d" % r)
-            print(Pfork)
-            print("Expected round number between two blocks:")
-            print(NumRound)
-            print("Expected total block:")
-            print(numBlock)
+            logging.info("Fork probability on round : %d" % r)
+            logging.info(str(Pfork))
+            logging.info("Expected round number between two blocks:"+str(NumRound))
+            logging.info("Expected total block:"+str(numBlock))
     
     sys.exit()
 

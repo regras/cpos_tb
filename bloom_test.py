@@ -1,10 +1,12 @@
 
 from bloomfilter import BloomFilter 
 from random import shuffle 
-  
+import logging
+
+#logging.basicConfig(filename = 'testenode.log',filemode ="w", level = logging.DEBUG, format =" %(asctime)s - %(levelname)s - %(message)s")
 bloomf = BloomFilter(80) 
-print("Size of bit array:{}".format(bloomf.size)) 
-print("Number of hash functions:{}".format(bloomf.hash_count)) 
+logging.info("Size of bit array:{}".format(bloomf.size)) 
+logging.info("Number of hash functions:{}".format(bloomf.hash_count)) 
 
 bit_array = bloomf.new_filter()
   
@@ -25,8 +27,8 @@ shuffle(test_words)
 for word in test_words: 
     if bloomf.check(word,bit_array): 
         if word in word_absent: 
-            print("'{}' is a false positive!".format(word)) 
+            logging.info("'{}' is a false positive!".format(word)) 
         else: 
-            print("'{}' is probably present!".format(word)) 
+            logging.info("'{}' is probably present!".format(word)) 
     else: 
-        print("'{}' is definitely not present!".format(word)) 
+        logging.info("'{}' is definitely not present!".format(word)) 

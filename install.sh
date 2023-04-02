@@ -7,3 +7,4 @@ if ! [ -x "$(command -v pip)" ]; then
 fi
 python -m pip install pyzmq
 python -m pip install configparser
+

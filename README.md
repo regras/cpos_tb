@@ -90,4 +90,3 @@ add block with index X and round Y
 stop node process
 - `-h` `--help`\
 help
->>>>>>> 1ac629620fd2946b0d0cb79a0d0c65a2c2d6e0b3

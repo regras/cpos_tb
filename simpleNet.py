@@ -16,6 +16,9 @@ import hashlib
 # Sample usage
 # sudo python simpleNet.py <n>
 # n: number of hosts
+import logging
+
+#logging.basicConfig(filename = 'testenode.log',filemode ="w", level = logging.DEBUG, format =" %(asctime)s - %(levelname)s - %(message)s")
 
 # file directory path to mount private dirs
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -37,7 +40,7 @@ def testHostWithPrivateDirs(number=4):
 
 def startServer(net,number):
     stake = parameter.numStake
-    print(stake)
+    logging.debug(str(stake))
     """ Start node.py process passing all hosts ip addresses """
     j = 1
     for h in net.hosts:

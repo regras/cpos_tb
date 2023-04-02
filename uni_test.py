@@ -8,6 +8,9 @@ import time
 import sys
 import random
 #import node
+import logging
+
+#logging.basicConfig(filename = 'testenode.log',filemode ="w", level = logging.DEBUG, format =" %(asctime)s - %(levelname)s - %(message)s")
 def timetocreateblocks(node,stake):
         
     time.sleep(2) 
@@ -20,7 +23,7 @@ def timetocreateblocks(node,stake):
     numBlocks = 0
     lastForks = {}
     lastBlockSimulation = 0
-    print("Call timetocreateBlocks function!")
+    logging.info("Call timetocreateBlocks function!")
     while(count <= 0):
         if not locked:
             node.setStake(stake[count])
@@ -32,8 +35,7 @@ def timetocreateblocks(node,stake):
         #if sqldb.getLastBlockIndex()==(100*count) and sqldb.getLastBlockIndex()>1:
         node.acquireCommitBlock()        
         quantityBlocks = node.commitBlock(message=[lastBlockSimulation],t=5)
-        print("QUANTITY BLOCKS")
-        print(quantityBlocks)
+        logging.info("QUANTITY BLOCKS:"+str(quantityBlocks))
         if(quantityBlocks >= parameter.TEST):
         #if(sqldb.quantityofBlocks(lastBlockSimulation) >= parameter.TEST):
             os.system("./blockchain-cli stopmining")   
@@ -44,15 +46,13 @@ def timetocreateblocks(node,stake):
             lastForks, newBlocks = node.commitBlock(message=[start,end,lastForks,numBlocks],t=6)
             #lastForks, newBlocks = calculation.calcParameters(start,end,lastForks, numBlocks)
             numBlocks = numBlocks + newBlocks
-            print("numBlocks")
-            print(numBlocks)
-            print("count")
-            print(count)
+            logging.debug("numBlocks:"+str(numBlocks))
+            logging.debug("count:"+str(count))
             lastBlockSimulation = node.commitBlock(message=[lastBlockSimulation], t=7)
             node.releaseCommitBlock()
             #lastBlockSimulation = sqldb.getLastStableBlock(lastBlockSimulation)
-            print("lastBlockSimulation")
-            print(lastBlockSimulation)
+            logging.debug("lastBlockSimulation:"+str(lastBlockSimulation))
+            
             count = count + 1
             time.sleep(1)
 

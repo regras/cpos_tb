@@ -8,7 +8,9 @@ import sqldb
 import threading
 import math
 #from itertools import combinations
+import logging
 
+#logging.basicConfig(filename = 'testenode.log',filemode ="w", level = logging.DEBUG, format =" %(asctime)s - %(levelname)s - %(message)s")
 
 def Combinations(m,n):
       # calcula o fatorial de m
@@ -186,7 +188,7 @@ def num_blocks_between(r,t,blockchain):
                 if(blockchain[k]):
                     num = num + 1
         else:
-            print("invalid position")
+            logging.info("invalid position")
         return num
     return 0
 
@@ -199,7 +201,7 @@ def all_not_gap_between(r,t,z,blockchain):
             if(blockchain[t]):
                 prodZ = prodZ * z[t]
     else:
-        print("invalid position")
+        logging.info("invalid position")
     return prodZ
 
 def bkpreversionProb(r,x,blockchain,z):
@@ -209,8 +211,8 @@ def bkpreversionProb(r,x,blockchain,z):
     numBlock = 0
     t = r
     while t < x:
-        print("numBlock: %d" %numBlock)
-        print("phri: %f" %phri)
+        logging.info("numBlock: %d" %numBlock)
+        logging.info("phri: %f" %phri)
         if(blockchain[t]):
             if(numBlock <= num_blocks_between(r,x-1,blockchain)):
                 phri = phri * z[t]
@@ -244,7 +246,7 @@ def calcZr(h,numSuc):
         if(index in parameter.combination):
             comb = parameter.combination[index]
         else:
-            print("combinations not present in list")
+            logging.info("combinations not present in list")
             comb = Combinations(parameter.W,k)
         #comb = Combinations(parameter.W,k)
         qr = qr + comb*(p**k)*((1-p)**(parameter.W - k))
@@ -254,7 +256,7 @@ def calcZr(h,numSuc):
 
 def updateChainView(idChain, block):
     if(sqldb.blockIsMaxIndex(block.index)):
-        print("IS MAXINDEX")
+        logging.debug("IS MAXINDEX")
         sqldb.writeChainLeaf(idChain, block)
         return True
     elif(not sqldb.blockIsMaxIndex(block.index)):
@@ -262,8 +264,8 @@ def updateChainView(idChain, block):
         if(status):
             if(((round == block.round) and sqldb.blockIsPriority(block.index,block.proof_hash))
             or (block.round < round)):
-                print("ISLEAF")
-                print("NOT MAXINDEX")
+                logging.debug("ISLEAF")
+                logging.debug("NOT MAXINDEX")
                 sqldb.removeAllBlocksHigh(block.index, block.proof_hash)
                 sqldb.writeChainLeaf(idChain, block)
                 return True
@@ -279,25 +281,24 @@ def updateChainView(idChain, block):
     #    else:
     #        return False
     else:
-        print("not insert new block")
+        logging.info("not insert new block")
         return False
             
 def addBlockLeaf(block=None,sync=False):
     #inserting block on the chain's top
     if(not sync):
         idChain = sqldb.getIdChain(block.prev_hash)
-        print("idChain:")
-        print(idChain)
+        logging.info("idChain:"+str(idChain))
         if(idChain):
             status = updateChainView(idChain, block)
             if(status):
-                print("new block inserted")
+                logging.info("new block inserted")
                 return True
             else:
-                print("new block not inserted")
+                logging.info("new block not inserted")
                 return True
         else:
-            print("blockchain not found. not sync?")
+            logging.warning("blockchain not found. not sync?")
             return False
         
 def checkMajorBlock(blocks,totalPeer):

@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+import logging
+
+#logging.basicConfig(filename = 'testenode.log',filemode ="w", level = logging.DEBUG, format =" %(asctime)s - %(levelname)s - %(message)s")
 def Combinations(m,n):
       # calcula o fatorial de m
     k = m
@@ -36,8 +39,8 @@ f = 0.1
 while(f <= 0.5):
     prob = 0
     for m in range(0, n + 1):
-        print("OK")
+        logging.debug("OK")
         prob = prob + Combinations(m+n-1,m)*(((f**m * (1-f)**n) - (f**n * (1-f)**m)))
-    print("f: ", f)
-    print("Prob. double spending: ", (1 - prob))
+    logging.debug("f: "+str(f))
+    logging.info("Prob. double spending: "+str(1 - prob))
     f = f + float(1) / 10

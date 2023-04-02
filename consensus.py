@@ -11,6 +11,10 @@ import parameter
 import pickle
 from collections import defaultdict
 
+import logging
+
+#logging.basicConfig(filename = 'testenode.log',filemode ="w", level = logging.DEBUG, format =" %(asctime)s - %(levelname)s - %(message)s")
+
 MSG_LASTBLOCK = 'getlastblock'
 MSG_BLOCK = 'block'
 MSG_BLOCKS = 'getblocks'
@@ -84,8 +88,8 @@ class Consensus:
         #    self.target = self.target - (2**(exp))
         #    i = i + 1
         #    exp = exp - 1
-        print("consensus")
-        print('result of consensus target {}'.format(self.target))
+        logging.info("consensus")
+        logging.info('result of consensus target {}'.format(self.target))
             
     def getTarget(self):
         return self.target

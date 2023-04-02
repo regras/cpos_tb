@@ -1,6 +1,8 @@
 #import parameter
 import parameter
+import logging
 
+#logging.basicConfig(filename = 'testenode.log',filemode ="w", level = logging.DEBUG, format =" %(asctime)s - %(levelname)s - %(message)s")
 ############combinations##########
 def Combinations(m,n):
       # calcula o fatorial de m
@@ -71,20 +73,20 @@ while(limit >=0):
             if(index in parameter.combination):
                 comb = parameter.combination[index]
             else:
-                print("combinations not present in list")
+                logging.info("combinations not present in list")
                 comb = Combinations(parameter.W,k[i])
             prob_i = comb * (p**k[i]) * ((1-p)**(parameter.W - k[i]))
             prob = prob * prob_i
         tprob = tprob + prob
     limit = limit - 1
-print(tprob)
+logging.debug(str(tprob))
 tprob = 1 - tprob
-print(tprob)
+logging.debug(str(tprob))
 #results = open(fileName, 'a')
 #results.write('probability: '+str(tprob)+'\n'
 #+ 'mean: '+str(smean)+ '\n'
 #+ 'round: '+str(round)+ '\n')
 #results.close()    
-print("we have probability %f of exists other chain with the mean %f on round %d" %(tprob,smean,round))
+logging.info("we have probability %f of exists other chain with the mean %f on round %d" %(tprob,smean,round))
 #round = round + 1
 #smean = smean - 1
